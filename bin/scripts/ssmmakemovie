@@ -1,0 +1,70 @@
+#!/bin/csh -f
+#
+# ssmmakemovie -- DCR 08/16/01
+# ============
+# Parses frames file to generate movie.
+#
+set me = `basename $0`
+alias ssgetopt ssgetopt "f:x \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args > 0) then
+	echo "Usage: $me [ -f frames-file ] [ -x ]"
+	exit 1
+endif
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm
+if !(-e $frames_file) then
+	echo $me\: $frames_file not found
+	exit 1
+endif
+#
+@ expunge = `ssgetopt x $argv`
+#
+set movie_type = `head -1 $frames_file | awk '{print $2}'`
+#
+if ($movie_type == fli) then
+	echo $me\: Creating FLI animation '(movie.fli)'...
+	tail -n +2 $frames_file >! .tmp$me
+	set size = `head -1 $frames_file | awk '{print $4}'`
+	rm -f movie.fli # to suppress annoying overwrite prompt
+	ppm2fli -g $size'x'$size .tmp$me movie.fli
+	if ($status) exit 1
+	rm -f .tmp$me
+	echo $me\: Done...use xanim to watch the movie
+else if ($movie_type == gif) then
+	echo $me\: Creating animated GIF...
+	convert `tail -n +2 $frames_file` movie.gif
+	if ($status) exit 1
+	echo $me\: Done...use gifview, quicktime, or your favorite browser to watch the movie
+else if ($movie_type == mpg) then
+	echo $me\: Creating MPEG movie...
+	# following is experimental use of ffmpeg!!...
+	@ i = 1
+	set frame_type = `head -1 $frames_file | awk '{print $1}'`
+	foreach frame (`tail -n +2 $frames_file`)
+		ln -s $frame ffmpeg`printf %012d $i`.$frame_type
+		@ i++
+	end
+#	ffmpeg -qscale 5 -r 30 -b 9600 -y -i ffmpeg%012d.$frame_type movie.mp4
+	# following is higher quality but bigger movies!
+	# note use of "<<" to allow this script to be run in the background
+	# (cf. Steve's e-mail 5/9/11).
+	#ffmpeg -r 30 -b 9600 -y -i ffmpeg%012d.$frame_type movie.mp4 << EOF
+	# 5/22/13: after update of ffmpeg, found following works (for quicktime playback):
+	ffmpeg -i ffmpeg%012d.$frame_type -loglevel warning -pix_fmt yuv420p -y movie.mp4 << EOF
+
+EOF
+	if ($status) exit 1
+	rm -f ffmpeg*.$frame_type
+#	convert `tail -n +2 $frames_file` movie.mpg
+#	if ($status) exit 1
+	echo $me\: Done...use ffplay or quicktime to watch the movie
+else
+	echo $me\: Unsupported movie type "($movie_type)"
+	exit 1
+endif
+#
+if ($expunge) rm -f `tail -n +2 $frames_file` >& /dev/null
+#

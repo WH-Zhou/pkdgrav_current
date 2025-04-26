@@ -1,0 +1,41 @@
+#!/bin/csh -f
+#
+# ssmclean -- DCR 08/15/01
+# ========
+# Removes all fli, gif, jpg, mpg, png, pov, ppm, ras, ssm, tga, and xwd files.
+#
+set me = `basename $0`
+alias ssgetopt "ssgetopt f \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args > 0) then
+	echo "Usage: $me [ -f ]"
+	exit 1
+endif
+#
+@ force = `ssgetopt f $argv`
+#
+set exts = (fli gif jpg mpg png pov ppm ras ssm tga xwd)
+#
+@ proceed = 1
+if !($force) then
+	echo $me\: WARNING: all unprotected files with these extensions will be erased:
+	echo $me\: $exts
+	echo -n $me\: Proceed'? (CTRL-C to abort) '
+	set in = $<
+	if (`echo $in | tr a-z A-Z` != Y && `echo $in | tr a-z A-Z` != YES) @ proceed = 0
+endif
+#
+if ($proceed) then
+	rm -f .tmp* >& /dev/null
+	foreach ext ($exts)
+		if ($force) then
+			rm -f *.$ext >& /dev/null
+		else
+			echo -n $ext'... '
+			rm *.$ext
+			if ($status == 0) echo 'deleted'
+		endif
+	end
+endif
+#

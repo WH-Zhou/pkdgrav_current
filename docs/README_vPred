@@ -1,0 +1,107 @@
+The following email excerpt was sent in response to a query from Mia
+Mace, a Bristol student working with Zoe Leinhardt, on June 14, 2016.
+It explains the logic behind the symplectic patch scheme and how
+predicted velocities (vPred) work.
+
+Date: Tue, 14 Jun 2016 19:55:15 -0400 (EDT)
+From: Derek C. Richardson <dcr@astro.umd.edu>
+To: Mia Mace <mia.mace@bristol.ac.uk>
+Subject: Re: pkdgrav and Hill's equations
+
+On Sat, 11 Jun 2016, Mia Mace wrote:
+> I've been working through Heggie's 2001 Hamiltonian approach to Hill's 
+> equations (https://arxiv.org/pdf/astro-ph/0011294v1.pdf) and reading the 
+> 2009 paper "A Symplectic Integrator for Hill's Equations"  ( 
+> http://arxiv.org/pdf/0908.2269.pdf ) to see how the centrifugal and 
+> coriolis terms are added into the patch code. I'm confused as to how the 
+> kick-drift-kick scheme (equations 30 - 38 of Quinn (2009)) is 
+> implemented in the code, e.g I've found the pkdKickPatch and 
+> pkdKickVpred functions but I don't follow where the drift routine 
+> happens exactly or what dvFacTwo, dvPredFacOne are. Could you please 
+> explain a bit about the structure of the code wrt the paper as I'm sort 
+> of hopelessly flailling around in the functions getting lost!
+
+Yes, this part of the code is not at all easy to follow!  Following the 
+equations in the paper,
+
+1. The opening kick is performed in msrKickKDKOpen() in master.c.
+   Search for SLIDING_PATCH in that function and note the call to
+   pstKickPatch(), which then calls pkdKickPatch() in pkd.c.  dvFacTwo
+   is set to dDelta (because in.dvFacTwo is dDelta, and that's because
+   msr->param.bCannonical is always set to 1 for these simulations and
+   csmComoveKickFac() returns dDelta for non-cosmology simulations).
+   Here dDelta is *half* of the simulation step (assuming fixed
+   timesteps) -- half because we're doing a half-step kick (as opposed
+   to a full-step drift) -- you can see this by noting the call to
+   msrKickKDKOpen() in msrTopStepKDK() uses 0.5*dDelta.  I know, it's
+   incredibly obtuse. :p
+
+2. With this information, it should now be possible to parse
+   pkdKickPatch().  The line
+
+      p->v[j] = p->v[j]*dvFacOne + p->a[j]*dvFacTwo;
+
+   advances the velocities by a half-step (dvFacOne = 1) due to
+   interparticle gravity; this is the same as what's done in the
+   regular pkdKick() function.  But in pkdKickPatch(), Hill's
+   equations are also applied, depending on whether this is an opening
+   or closing kick (controlled by the bOpen parameter).  Note that the
+   Py in the code is *not* the same as the Py in the paper -- in the
+   paper, the self-gravity terms are contained in Py, but for
+   efficiency the code separates these out.  Together Eqs. (32) & (33)
+   are what is found in the "if(bOpen)" code block.
+
+3. The drift (Eqs. (34) & (35)) is unchanged compared to non-patch
+   runs: everything is done in pkdDrift().
+
+4. The closing kick uses pkdKickPatch() via msrKickKDKClose(), but
+   with bOpen set to false.  This implements Eqs. (37) & (38) (again
+   the self-gravity parts are done separately via the line in point 2
+   above).
+
+5. As for dvPredFacOne and dvPredFacTwo, these are zero if NEED_VPRED
+   is not defined.  Otherwise, dvPredFacOne = 1 (same as dvFacOne),
+   and dvPredFacTwo = 0 for opening kicks and = dvFacTwo (i.e., half
+   of one timestep) for closing kicks.  They are used to compute
+   values for particle "predicted" velocities (vPred) -- and also
+   predicted spins (wPred) -- when these are needed for equations of
+   motion that do not properly account for speed- (or spin-) dependent
+   quantities.  Previously the Hill's equations implementation in
+   pkdgrav used vPred; Quinn's paper and subsequent modifications
+   fixed that.  Note that the predicted velocities (and spins) are
+   updated *during the drift* by a call from msrDrift() to
+   pstKickVPred() -- essentially the predicted velocities after the
+   drift will be as though the velocities were advanced a full step
+   from the start of the step, instead of half a step.
+
+BTW, I don't know of any differences, but just in case, here's the
+link to the actual Quinn et al. paper (rather than the preprint
+version):
+
+   http://www.astro.umd.edu/~dcr/reprints/quinn_aj139,803.pdf
+
+> I've been looking into putting a planetary magnetic field into the
+> patch model (following Matthews & Hyde (2003)
+> http://iopscience.iop.org/0305-4470/36/22/349 , and I was hoping to
+> write it as an external function (like gas drag) and so the
+> acceleration terms of Matthews (5) would just be added in after all
+> the kick-drift-kick calculations had already occurred in the
+> patch. Do you think that is OK or would I need to be careful about
+> separating the velocity-dependent terms to maintain symplecticity?
+
+So this is a situation where you could use vPred (in place of x-dot,
+y-dot, z-dot in Eq. (5) of Matthews).  Effectively however this makes
+the integrator first-order instead of second-order.  The only way to
+do better is to follow the same kind of procedure as in Quinn et
+al. to devise a new symplectic scheme that accounts for the
+velocity-dependent terms in the equations of motion.  You may want to
+consult with him directly if you attempt this!
+
+-- 
+Prof. Derek C. Richardson
+University of Maryland
+Department of Astronomy
+1112 Physical Sciences Complex
+College Park MD 20742 USA
+Tel: 301-405-8786 Fax: 301-314-9067
+Web: http://www.astro.umd.edu/~dcr/

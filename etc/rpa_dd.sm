@@ -1,0 +1,149 @@
+define ps 0 # device: 0=X11, 1=postencap
+define title "Distribution Data"
+define n_bins 30
+define Pmax 1000 # maximum spin to plot (in h)
+define data_file "rpa_centers.dd"
+define TeX_strings 1
+define verbose 0
+#
+if ($ps) {
+	define use_cursor 0
+	define yellow magenta
+	lweight 3
+} else {
+	define yellow yellow
+}
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+macro log_plot 3 {
+	set lv = lg($1)
+	vecminmax lv lvmin lvmax
+	define w (($lvmax - $lvmin)/$n_bins)
+	get_hist lv hx hy $lvmin $lvmax $w
+	set x = hx if (hy > 0)
+	set y = hy if (hy > 0)
+	set ly = lg(y)
+	limits x ly
+	ticksize -1 10 -1 10
+	box
+	xlabel $3
+	ylabel n
+	ctype $2
+	points x ly
+	connect x ly
+	ctype default
+}
+#
+macro cumu_log_plot 3 {
+	set lv = lg($1)
+	vecminmax lv lvmin lvmax
+	define w (($lvmax - $lvmin)/$n_bins)
+	get_hist lv hx hy $lvmin $lvmax $w
+	set x = hx if (hy > 0)
+	set y = hy if (hy > 0)
+	set c = 0*y # zero vector
+	do i=0,dimen(y)-1 {
+		do j=$i,dimen(y)-1 {
+			set c[$i] = c[$i] + y[$j]
+		}
+	}
+	set ly = lg(c)
+	limits x ly
+	ticksize -1 10 -1 10
+	box
+	xlabel $3
+	ylabel Cumulative n
+	ctype $2
+	points x ly
+	connect x ly
+	ctype default
+}
+#
+if ($ps == 0) {dev x11 -geom 800x800+0+0}
+#
+expand 1.001
+ptype 20 3
+#
+data $data_file
+#
+read {M 2 R 3 V 4 P 5 ri 6}
+#
+if ($ps) {dev postencap rpa_dd1.ps}
+#
+window 2 2 1 2
+cumu_log_plot M yellow "Mass (kg)"
+#
+window 2 2 2 2
+cumu_log_plot R blue "Effective Radius (m)"
+#
+window 2 2 1 1
+log_plot V red "Ejection Speed (m s^{-1})"
+#
+window 2 2 2 1
+set Px = P if (P > 0 && P < $Pmax)
+log_plot Px green "Spin Period (h)"
+#
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 $title Page 1
+#
+next
+#
+if ($ps) {dev postencap rpa_dd2.ps}
+#
+set lM = lg(M)
+set lV = lg(V)
+ticksize -1 10 -1 10
+#
+window 1 -3 1 3
+limits lM lV
+box 0 2 0 0
+ylabel Speed (m s^{-1})
+ctype red
+points lM lV
+ctype default
+#
+window 1 -3 1 2
+set lMx = lM if (P > 0 && P < $Pmax)
+set lPx = lg(Px)
+limits lM lPx
+box 0 2 0 0
+ylabel Period (h)
+ctype green
+points lM lPx
+ctype default
+#
+window 1 -3 1 1
+ticksize -1 10 0 0
+limits lM ri
+box
+xlabel Mass (kg)
+ylabel Rotation Index
+ctype blue
+points lM ri
+ctype default
+#
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 $title Page 2
+#
+pause
+quit
+#

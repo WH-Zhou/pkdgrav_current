@@ -1,0 +1,32 @@
+#!/bin/csh -f
+#
+if ($#argv < 1) then
+	echo Usage: $0 run-dir [ run-dir ... ]
+	exit 1
+endif
+#
+foreach dir ($argv)
+	echo $dir
+	if !(-d $dir) then
+		echo $dir is not a directory -- skipped
+		continue
+	endif
+	pushd $dir >& /dev/null
+	if ($status) then
+		echo Error accessing $dir -- skipped
+		popd >& /dev/null
+		continue
+	endif
+	rm -f {.,}*{~,%,-,.BAK,.OLD,.bak,.old} >& /dev/null
+	rm -f STOP condor.{err,log,out} core output* pcl.dat rejects.out ss.{acc,log,pot} frames.ssm mpeg.par movie.mpg
+	rm -f *.den ss.chk* ss.coll.* ssa.???{,?} rpa{.out,_*} patcha.???* >& /dev/null
+	set first = `ls -1 ss.[0-9]* | head -1`
+	if ("$first" != "") then
+		rm -f .tmp$$
+		if (-l $first) mv -f $first .tmp$$
+		rm -f ss.[0-9]* >& /dev/null
+		if (-e .tmp$$) mv -f .tmp$$ $first
+	endif
+	popd >& /dev/null
+end
+#

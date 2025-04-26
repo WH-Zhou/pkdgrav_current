@@ -1,0 +1,307 @@
+#!/bin/csh -f
+#
+# ssmconvert -- DCR 06/26/02
+# ==========
+# Converts between file formats.
+#
+set me = `basename $0`
+alias ssgetopt ssgetopt "f:i:o:x \!*"
+#
+set formats = (gif jpg png pov ppm ras tga xwd) # supported image formats
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args < 1) then
+	echo Usage: $me [ -f frames-file ] [ -i input-format ] [ -o output-format ] [ -x ] file [ file ... ]
+	echo Supported formats: $formats
+	exit 1
+endif
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm
+#
+set inp_form = `ssgetopt i $argv`
+if ("$inp_form" != "") then
+	@ ok = 0
+	foreach format ($formats)
+		if ("$inp_form" == "$format") then
+			@ ok = 1
+			break
+		endif
+	end
+	if !($ok) then
+		echo $me\: Invalid input format "($inp_form)"
+		exit 1
+	endif
+endif
+#
+set out_form = `ssgetopt o $argv`
+if ("$out_form" == "") then
+	if !(-e $frames_file) then
+		echo $me\: $frames_file not found...must specify output format
+		exit 1
+	endif
+	set out_form = `head -1 $frames_file | awk '{print $1}'`
+endif
+@ ok = 0
+foreach format ($formats)
+	if ("$out_form" == "$format") then
+		@ ok = 1
+		break
+	endif
+end
+if !($ok) then
+	echo $me\: Invalid output format "($out_form)"
+	exit 1
+endif
+if ($out_form == pov) then
+	echo $me\: pov cannot be selected as output format
+	exit 1
+endif
+#
+@ expunge = 0
+if (`ssgetopt x $argv` != "") @ expunge = 1
+#
+@ size = 0
+#
+foreach file ($args)
+	echo Converting $file to $out_form...
+	@ pov = 0
+	set extgz = `echo $file | sed 's/.gz$/TMPgz/' | awk -F. '{print $NF}' | sed 's/TMPgz$/.gz/'`
+	set ext = `echo $extgz | sed 's/.gz$//'`
+	@ ext_sup = 0
+	foreach format ($formats)
+		if ("$format" == "$ext") then
+			@ ext_sup = 1
+			break
+		endif
+	end
+	if ("$inp_form" == "" && $ext_sup == 0) then
+		echo $me\: Unrecognized file format.
+		exit 1
+	endif
+	if ("$inp_form" != "" && $ext_sup == 1 && "$ext" != "$inp_form") then
+		echo $me\: Inconsistent file format.
+		exit 1
+	endif
+	if ("$inp_form" == "") then
+		set format = $ext
+	else
+		set format = $inp_form
+	endif
+	set base = `echo $file | sed s/\.$extgz//`
+	if ("$base" == "") then
+		set out_file = $file.$out_form
+	else
+		set out_file = $base.$out_form
+	endif
+	if ($format == gif) then
+		if ($out_form == gif) then
+			if ("$file" != "$out_file") then
+				cp -f $file $outfile
+			else
+				@ expunge = 0
+			endif
+		else if ($out_form == jpg) then
+			giftopnm $file | cjpeg >! $out_file
+		else if ($out_form == ppm) then
+			giftopnm $file >! $out_file
+		else if ($out_form == png) then
+			giftopnm $file | pnmtopng >! $out_file
+		else if ($out_form == ras) then
+			giftopnm $file | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			giftopnm $file | ppmtotga >! $out_file
+		else if ($out_form == xwd) then
+			giftopnm $file | pnmtoxwd >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else if ($format == jpg) then
+		if ($out_form == gif) then
+			djpeg -gif $file >! $out_file
+		else if ($out_form == jpg) then
+			if ("$file" != "$out_file") then
+				cp -f $file $outfile
+			else
+				@ expunge = 0
+			endif
+		else if ($out_form == png) then
+			djpeg $file | pnmtopng >! $out_file
+		else if ($out_form == ppm) then
+			djpeg $file >! $out_file
+		else if ($out_form == ras) then
+			djpeg $file | ppmquant 256 | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			djpeg -targa $file >! $out_file
+		else if ($out_form == xwd) then
+			djpeg $file | pnmtoxwd >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else if ($format == png) then
+		png:
+		if ($out_form == gif) then
+			pngtopnm $file | ppmquant 256 | ppmtogif >! $out_file
+		else if ($out_form == jpg) then
+			pngtopnm $file | cjpeg >! $out_file
+		else if ($out_form == png) then
+			if ("$file" != "$out_file") then
+				cp -f $file $out_file
+			else if ($format == png) then # (could be pov)
+				@ expunge = 0
+			endif
+		else if ($out_form == ppm) then
+			pngtopnm $file >! $out_file
+		else if ($out_form == ras) then
+			pngtopnm $file | ppmquant 256 | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			pngtopnm $file | ppmtotga >! $out_file
+		else if ($out_form == xwd) then
+			pngtopnm $file | pnmtoxwd >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ("$expunge" != "" && $format != pov) rm -f $file
+	else if ($format == pov) then
+		if !($size) then
+			if !(-e $frames_file) then
+				echo $me\: $frames_file not found...needed for pov frame size
+				exit 1
+			endif
+			@ size = `head -1 $frames_file | awk '{print $4}'`
+		endif
+		# gunzip file if necessary...
+		set gzfile = $file
+		set file = `echo $gzfile | sed 's/.gz$//'`
+		if ($file != $gzfile) then
+			gunzip $gzfile >& /dev/null
+		endif
+		# For POV-Ray, take $size to be the frame width, but
+		# compute the height using the aspect ratio in the file...
+		set width = $size
+		set aspect_ratio = `awk '/camera/{print $9}' $file | sed 's/-x\*//'`
+		if ("$aspect_ratio" == "") set aspect_ratio = "1"
+		set height =  `echo '' | awk '{print int('$width'/'$aspect_ratio')}'`
+		echo $me\: Running povray -D -V -I$file -W$width -H$height +A -J
+		povray -D -V -I$file -W$width -H$height +A -J >& /dev/null
+		if ($status) then
+			echo $me\: Error running POV-Ray. Check include file\?
+			exit 1
+		endif
+		if ($expunge) then
+			rm -f $file
+		else
+			# force gzipping...
+			gzip $file >& /dev/null
+		endif
+		set file = `echo $file | sed s/pov/png/`
+		@ pov = 1
+		goto png
+	else if ($format == ppm) then
+		if ($out_form == gif) then
+			ppmquant 256 $file | ppmtogif >! $out_file
+		else if ($out_form == jpg) then
+			cjpeg $file >! $out_file
+		else if ($out_form == ppm) then
+			if ("$file" != "$out_file") then
+				cp -f $file $out_file
+			else
+				@ expunge = 0
+			endif
+		else if ($out_form == png) then
+			pnmtopng $file >! $out_file
+		else if ($out_form == ras) then
+			ppmquant 256 $file | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			ppmtotga $file >! $out_file
+		else if ($out_form == xwd) then
+			pnmtoxwd $file >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else if ($format == ras) then
+		if ($out_form == gif) then
+			rastoppm $file | ppmtogif >! $out_file
+		else if ($out_form == jpg) then
+			rastoppm $file | cjpeg >! $out_file
+		else if ($out_form == png) then
+			rastoppm $file | pnmtopng >! $out_file
+		else if ($out_form == ppm) then
+			rastoppm $file >! $out_file
+		else if ($out_form == ras) then
+			if ("$file" != "$out_file") then
+				cp -f $file $out_file
+			else
+				@ expunge = 0
+			endif
+		else if ($out_form == tga) then
+			rastoppm $file | ppmtotga >! $out_file
+		else if ($out_form == xwd) then
+			rastoppm $file | pnmtoxwd >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else if ($format == tga) then
+		tga:
+		if ($out_form == gif) then
+			tgatoppm $file | ppmquant 256 | ppmtogif >! $out_file
+		else if ($out_form == jpg) then
+			tgatoppm $file | cjpeg >! $out_file
+		else if ($out_form == png) then
+			tgatoppm $file | pnmtopng >! $out_file
+		else if ($out_form == ppm) then
+			tgatoppm $file >! $out_file
+		else if ($out_form == ras) then
+			tgatoppm $file | ppmquant 256 | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			if ("$file" != "$out_file") then
+				cp -f $file $out_file
+			else
+				@ expunge = 0
+			endif
+		else if ($out_form == xwd) then
+			tgatoppm $file | pnmtoxwd >! $out_file
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else if ($format == xwd) then
+		if ($out_form == gif) then
+			xwdtopnm $file | ppmquant 256 | ppmtogif >! $out_file
+		else if ($out_form == jpg) then
+			xwdtopnm $file | cjpeg >! $out_file
+		else if ($out_form == png) then
+			xwdtopnm $file | pnmtopng >! $out_file
+		else if ($out_form == ppm) then
+			xwdtopnm $file >! $out_file
+		else if ($out_form == ras) then
+			xwdtopnm $file | ppmquant 256 | pnmtorast >! $out_file
+		else if ($out_form == tga) then
+			xwdtopnm $file | ppmtotga >! $out_file
+		else if ($out_form == xwd) then
+			if ("$file" != "$out_file") then
+				cp -f $file $out_file
+			else
+				@ expunge = 0
+			endif
+		else
+			echo $me\: This should not happen
+			exit 1
+		endif
+		if ($expunge) rm -f $file
+	else
+		echo $me\: This should not happen
+		exit 1
+	endif
+end
+#

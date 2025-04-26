@@ -1,0 +1,90 @@
+# User-editable compile options for pkdgrav
+
+# Choose compilers and global options here...
+# (see bottom of file for versions with pedantic error-checking flags)
+CC=gcc
+#CC=icc
+
+MPICC=mpicc
+
+#CFLAGS=-g
+CFLAGS=-O2 -g # -pg
+LDFLAGS= # -pg
+LDLIBS=
+
+# Choose pkdgrav parallel option (only last one uncommented will be built)...
+PKDGRAV_TYPE=null
+#PKDGRAV_TYPE=mpi
+#PKDGRAV_TYPE=pthread
+
+# Choose pkdgrav functionality options (not all are mutually compatible)...
+# *NOTE* FAST_AGGS requires particle data to be in monotonic aggregate order
+USE_COLLISIONS=true
+USE_WALLS=true
+USE_AGGS=true
+#USE_FAST_AGGS=true
+#USE_SPRINGS=true
+#USE_SLIDING_PATCH=true
+
+# Soft-sphere DEM functionality (many options!)...
+USE_DEM=true
+USE_DEM_FIXED_BALL=true
+USE_DEM_ROTATION_DASHPOT=true
+#USE_DEM_TRACK_ORIENT=true
+#USE_DEM_COHESION=true
+#USE_DEM_TWOLAYERS=true
+#USE_DEM_WALLS_REACT=true
+#USE_DEM_OVERLAP_OUTPUT=true
+#USE_DEM_DIAG=true
+
+# In-development/special-purpose functionality...
+#USE_SPINUP=true
+#USE_SEISMIC_WAVE=true
+
+# Bristol group functionality...
+#USE_RUBBLE_ZML=true
+#USE_COLLMOD_ZML=true
+
+# Following only used for rubble and collmod variants (0 to disable)...
+ORIGIN_HISTOGRAM_BINS=10 # NOTE: needs to be same as no. of dust bins
+
+# Select between Numerical Recipes (not distributable) and GSL (public)...
+USE_NUMREC=true
+METHOD_CFLAGS=
+METHOD_LDFLAGS=
+METHOD_LDLIBS=
+#USE_GSL=true
+#METHOD_CFLAGS=-I/opt/local/include #-DGSL_RANGE_CHECK_OFF
+#METHOD_LDFLAGS=-L/opt/local/lib
+#METHOD_LDLIBS=-lgsl -lgslcblas
+
+# Following sets maximum fractional difference in conserved quantities
+# (especially mass) before printing a warning.  The larger the number
+# of particles, the larger this value has to be to suppress warnings
+# due to round-off error.  (The reported difference also changes with
+# the number of processors, due to changes in summation order.)
+PKD_CFLAGS+=-DCONSERVE_FRAC=1.0e-12
+
+# Uncomment the following to turn on FPE trapping (Linux only)...
+#PKD_AND_SS_CFLAGS+=-DTRAP_FPE=1
+
+# Option to turn on optimized mpi parallel I/O (comment out to disable)...
+# *** EXPERIMENTAL: do not use unless you know what you are doing... ***
+#USE_PARALLEL_IO=true
+
+# Some compilers for pthreads need the following...
+#PTHREAD_SWITCH=-pthread
+#PTHREAD_LDLIBS=-lpthread
+
+# For detailed checking of ss code...
+# (added "-Wno-long-long" to suppress warnings in random.h)
+#CC=gcc -ansi -pedantic -Werror -Wall -W -Wmissing-prototypes -Wstrict-prototypes -Wconversion -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wnested-externs -Wno-long-long -fshort-enums -fno-common -Dinline=
+
+# For detailed checking of pkdgrav code...
+# (use "-std=c99" instead of "-ansi" to permit C++-style comments)
+# (some warnings suppressed compared to ss code because too much work to fix)
+#CC=gcc -std=c99 -pedantic -Werror -Wall -W -Wstrict-prototypes -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wnested-externs -Wno-long-long -Wno-unused-parameter -Wno-format-truncation -fshort-enums -fno-common -Dinline=
+
+# For detailed checking of pkdgrav code using MPI...
+# (found only following set useful for available mpicc version)
+#MPICC=mpicc -std=c99 -pedantic -Werror -Wall -W -Wno-unused-parameter -Wno-sign-compare -Wstrict-prototypes -Wshadow -Wpointer-arith -Wcast-qual -Wwrite-strings -Wnested-externs -fshort-enums -fno-common

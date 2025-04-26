@@ -1,0 +1,75 @@
+.TH ssmlabel n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmlabel \- Adds text label to supplied PPM file.
+.SH SYNOPSIS
+ssmlabel [-F \fIfont\fP] [-c \fIcolor\fP] [-f \fIframes-file\fP] [-o
+\fIoutput-file\fP | -p] [-t \fItext\fP] [-u] [-v] [-x \fIx-pos\fP] [-y
+\fIy-pos\fP] [-b \fIcolor\fP | \fIppmfile\fP]
+.SH DESCRIPTION
+This utility adds a text label to a PPM file.  You can specify the
+font, text color, orientation, and starting position.  The text will
+be positioned in a close-fitting rectangular box with background color
+matching the most-used color in the target image (with luck this will
+make the text box background "transparent").
+.SH OPTIONS
+.IP "-F \fifile\fP"
+Use the BDF font described in \fIfile\fP (default is to use a built-in
+10-point Times-Roman font).  Some pre-built alternatives can be found
+in ss_core/lib/fonts: helvB14.bdf, helvB18.bdf, helvB24.bdf,
+timR14.bdf, timR18.bdf, and timR24.bdf (i.e., 14-, 18-, and 24-point
+bold Helvetica or Times-Roman).
+.IP "-b \fIcolor\fP"
+Create a blank template with \fIcolor\fP background instead of reading
+a PPM file.  This is useful for creating title frames from scratch.
+The default output filename is blank.ppm (see option -o).  Although
+not an error, use of -b with -p is redundant.
+.IP "-c \fIcolor\fP"
+Use \fIcolor\fP for text drawing (default white or #ffffff).  Colors
+may be specified by any of the rules given in the \fBppmchange\fP man
+page, but be sure to escape any control characters (e.g. "-color
+\\#0000ff" for blue).
+.IP "-f \fIfile\fP"
+Read animation parameters from \fIfile\fP (default frames.ssm).  If
+the frames file is not found, the user will be prompted for the frame
+dimensions.
+.IP "-o \fIfile\fP"
+Write the output to \fIfile\fP (with option -b the default is
+blank.ppm, otherwise the default is to insert the letter "l" between
+the basename and the extension, e.g. frame00000.ppm would become
+frame00000l.ppm).  Options -o and -p are mutually exclusive.
+.IP -p
+Overwrite \fIppmfile\fP with the output.  Options -p and -o are
+mutually exclusive.  Although not an error, use of -p with -b is
+redundant.
+.IP "-t \fItext\fP"
+Write \fItext\fP.  If the text consists of more than one word, the
+entire string must be enclosed in escaped quotes, e.g. \\"this is my
+text label\\".
+.IP -u
+.IP -v
+Orient the text upside-down (-u) or vertically, via a 90-degree
+counterclockwise rotation (-v) or 90-degree clockwise rotation (both
+-u and -v).
+.IP "-x \fInum\fP"
+.IP "-y \fInum\fP"
+Start drawing the text at the given coordinates, specified as a
+fraction of the image size (default [-0,-0]).  Negative arguments
+(including -0) are measured from the left-hand or top edge of the
+frame to the top-left corner of the label.  Positive arguments with a
+prepended + sign (including +0) are measured from the right-hand or
+bottom edge to the bottom-right corner of the label.  Arguments that
+are exactly 0 with no + or - sign indicate centering on the
+corresponding axis.  Arguments with no sign, apart from zero, are
+taken to be negative, i.e. positioning will be relative to the top
+left.
+.SH SEE ALSO
+ppmchange(1)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

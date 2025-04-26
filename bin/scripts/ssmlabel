@@ -1,0 +1,185 @@
+#!/bin/csh -f
+#
+# ssmlabel -- DCR 08/13/01
+# ========
+# Adds text label to supplied PPM file.
+#
+set me = `basename $0`
+alias ssgetopt "ssgetopt F:c:f:o:pt:uvx:y:b: \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args > 1) then
+	echo "Usage: $me [ -F font ] [ -c color ] [ -f frames-file ] [ -o output-file | -p ] [ -t text ] [ -u ] [ -v ] [ -x x-pos ] [ -y y-pos ] [ -b color | ppmfile ]"
+	exit 1
+endif
+#
+set font = `ssgetopt F $argv`
+if ("$font" == "") then
+	set font = '-builtin bdf'
+else
+	if !(-e $font) then
+		echo $me\: Cannot locate font $font
+		exit 1
+	endif
+	set font = "-font $font"
+endif
+#
+set color = `ssgetopt c $argv`
+if ("$color" == "") set color = \#ffffff
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm
+#
+set output_file = `ssgetopt o $argv`
+@ permanent = `ssgetopt p $argv`
+if ("$output_file" != "" && $permanent) then
+	echo $me\: Cannot use -o and -p at same time
+	exit 1
+endif
+set text = "`ssgetopt t $argv | sed 's/@/ /g'`"
+@ upside_down = `ssgetopt u $argv`
+@ vertical = `ssgetopt v $argv`
+#
+set arg = `ssgetopt x $argv`
+if ("$arg" == "") then
+	set x = "-0"
+else
+	set x = "$arg"
+endif
+#
+set arg = `ssgetopt y $argv`
+if ("$arg" == "") then
+	set y = "-0"
+else
+	set y = "$arg"
+endif
+#
+set bgcolor = `ssgetopt b $argv`
+if ("$bgcolor" != "" && $#args > 0) then
+	echo $me\: Cannot change background color of ppm-file
+	exit 1
+endif
+if ("$bgcolor" == "") set bgcolor = \#000000
+#
+@ size = 0
+if (-e $frames_file) then
+	@ size = `head -1 $frames_file | awk '{print $4}'`
+	if ($size <= 0) then
+		echo $me\: Invalid frame size "($size)"
+		exit 1
+	endif
+endif
+#
+if ($#args == 0) then
+	if !(-e $frames_file) then
+		echo $me\: $frames_file not found
+		echo -n $me\: Enter x dimension in pixels:' '
+		@ fx = $<
+		echo -n $me\: Enter y dimension in pixels:' '
+		@ fy = $<
+		if ($fx <= 0 || $fy <= 0) then
+			echo $me\: Crazy dimensions...aborting...
+			exit 1
+		endif
+	else
+		@ fx = $size
+		@ fy = $size
+	endif
+	ppmmake $bgcolor $fx $fy >! .tmp$me
+	if ("$text" == "") goto finish
+	set file = .tmp$me\blank
+	mv -f .tmp$me $file
+else
+	if ("$text" == "") then
+		echo $me\: No label specified...aborting...
+		exit 1
+	endif
+	set file = $args[1]
+	if !(-e $file) then
+		echo $me\: $file not found
+		exit 1
+	endif
+	set base = $file
+	set ext = `echo $file | awk -F. '{print $NF}'`
+	if ("$ext" == "ppm") set base = `echo $file | sed s/\.ppm//`
+	unset ext
+endif
+#
+pbmtext $font "$text" | pnmcrop | pnminvert >! .tmp$me\1
+@ sx = `pnmfile .tmp$me\1 | awk '{print $4}'`
+@ sy = `pnmfile .tmp$me\1 | awk '{print $6}'`
+ppmmake \#000000 $sx $sy >! .tmp$me\2
+pnmpaste .tmp$me\1 0 0 .tmp$me\2 | ppmchange \#ffffff $color  >! .tmp$me\3
+if ($upside_down) then
+	pnmflip -rotate180 .tmp$me\3 >! .tmp$me\2
+	mv -f .tmp$me\2 .tmp$me\3
+endif
+if ($vertical) then
+	pnmflip -rotate90 .tmp$me\3 >! .tmp$me\2
+	mv -f .tmp$me\2 .tmp$me\3
+	@ tmp = $sx
+	@ sx = $sy
+	@ sy = $tmp
+endif
+@ fx = `pnmfile $file | awk '{print $4}'`
+@ fy = `pnmfile $file | awk '{print $6}'`
+if (-e $frames_file) then
+	@ size = `head -1 $frames_file | awk '{print $4}'`
+	if ($fx != $size || $fy != $size)\
+		echo $me\: WARNING: file size and frame size do not match
+endif
+@ left_just = 0
+@ right_just = 0
+@ top_just = 0
+@ bottom_just = 0
+if (`echo $x | awk '/^-/{print $0}'` == $x) then
+	@ left_just = 1
+else if (`echo $x | awk '/^\+/{print $0}'` == $x) then
+	@ right_just = 1
+endif
+if (`echo $y | awk '/^-/{print $0}'` == $y) then
+	@ top_just = 1
+else if (`echo $y | awk '/^\+/{print $0}'` == $y) then
+	@ bottom_just = 1
+endif
+if (!($left_just) && !($right_just) && $x == 0) then
+	set x = `echo '' | awk '{print ('$fx'-'$sx')/2}'` # centred on x
+else if ($left_just || (!($left_just) && !($right_just))) then
+	# next line needed because some awks don't have abs()...
+	set x = `echo '' | awk '{if ('$x'<0) {print (-1)*('$x')} else {print '$x'}}'`
+	set x = `echo '' | awk '{print '$x'*'$fx'}'` # left justified
+else
+	set x = `echo '' | awk '{print '$fx'-('$x'*'$fx'+'$sx')}'` # right
+endif
+if (!($top_just) && !($bottom_just) && $y == 0) then
+	set y = `echo '' | awk '{print ('$fy'-'$sy')/2}'` # centred on y
+else if ($top_just || (!($top_just) && !($bottom_just))) then
+	set y = `echo '' | awk '{if ('$y'<0) {print (-1)*('$y')} else {print '$y'}}'`
+	set y = `echo '' | awk '{print '$y'*'$fy'}'` # top justified
+else
+	set y = `echo '' | awk '{print '$fy'-('$y'*'$fy'+'$sy')}'` # bottom
+endif
+#
+# Attempt to blend label onto background color (assumes most used color
+# is background color -- this could sometimes do weird things...)
+#
+set bg = `ppmhist $file | tail -n +3 | head -1 | awk '{print $1" "$2" "$3}'`
+set hex = `echo '' | awk '{printf("rgb:%x/%x/%x",'$bg[1]','$bg[2]','$bg[3]')}'`
+ppmchange black $hex .tmp$me\3 >! .tmp$me\1
+pnmpaste .tmp$me\1 $x $y $file >! .tmp$me
+#
+finish:
+#
+if ("$output_file" == "") then
+	if ($#args == 0) then
+		set output_file = blank.ppm
+	else if ($permanent) then
+		set output_file = $file
+	else
+		set output_file = $base"l".ppm
+	endif
+endif
+#
+mv -f .tmp$me $output_file
+rm -f .tmp$me* >& /dev/null
+#

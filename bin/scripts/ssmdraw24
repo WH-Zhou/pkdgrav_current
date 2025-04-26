@@ -1,0 +1,29 @@
+#!/bin/csh -f
+#
+# ssmdraw -- DCR 08/16/01
+# =======
+# Runs ssdraw on supplied ss files.
+#
+set me = `basename $0`
+alias ssgetopt "ssgetopt f: \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args < 1) then
+	echo "Usage: $me [ -f frames-file ] ss-file [ ss-file ... ]"
+	exit 1
+endif
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm
+if !(-e $frames_file) then
+	echo $me\: $frames_file not found
+	exit 1
+endif
+set parfile = `head -1 $frames_file | awk '{print $3}'`
+#
+ssdraw -c -p $parfile $args
+if ($status) then
+	echo $me\: Error while running ssdraw
+	exit 1
+endif
+#

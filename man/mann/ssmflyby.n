@@ -1,0 +1,51 @@
+.TH ssmflyby n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmflyby \- Flies camera along straight line through scene (calls
+\fBssdraw\fP).
+.SH SYNOPSIS
+ssmflyby -e \fIend-point\fP [-f \fIframes-file\fP] [-i
+\fIstarting-frame-number\fP] [-n \fInumber-of-frames\fP] [-p] [-s
+\fIstart-point\fP] \fIss-file\fP
+.SH DESCRIPTION
+This script calls \fBssdraw\fP to construct a series of images from
+the point of view of a camera flying smoothly along a straight line
+through a scene described by a single ss file.  If a start point is
+not specified, the current camera position in the \fBssdraw\fP
+parameter file (given in the frames file header) is used.  The end
+point must always be specified.  If desired, the end point can be
+recorded in the parameter file so that subsequent operations use the
+final camera position.  Output filenames consist of the basename with
+"t####.xxx" appended, where "####" is the frame number (starting at
+0000 by default) and "xxx" is either ras or pov, depending on whether
+Sun rasterfiles or POV-Ray script files have been specified in the
+\fBssdraw\fP parameter file.  Generating more frames gives a smoother
+camera motion.  The start and end points must be specified as
+3-vectors with components separated by commas (no spaces), e.g. -s
+0,0,1 to start at (0,0,1).
+.SH OPTIONS
+.IP "-e \fIvector\fP"
+Stop the camera at position \fIvector\fP (required).
+.IP "-f \fIfile\fP"
+Read animation parameters from \fIfile\fP (default frames.ssm).
+.IP "-i \fInum\fP"
+Start counting at frame \fInum\fP (default 0).  This option is useful
+when splitting a trajectory into two or more legs.
+.IP "-n \fInum\fP"
+Generate \fInum\fP frames (default 30).
+.IP -p
+Record the final camera position (specified by -e) in the \fIssdraw\fP
+parameter file.
+.IP "-s \fIvector\fP"
+Start the camera at position \fIvector\fP instead of at the position
+specified in the \fIssdraw\fP parameter file.
+.SH SEE ALSO
+ssdraw(n), ssmrotate(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

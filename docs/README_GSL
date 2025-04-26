@@ -1,0 +1,7 @@
+The public release of this code uses the Gnu Scientific Library (GSL) for
+several numerical operations. It is up to the user to ensure GSL has been
+installed properly (visit https://www.gnu.org/software/gsl/).
+
+To compile the code, edit METHOD_CFLAGS and METHOD_LDFLAGS in Makefile.in
+to reflect the correct paths to the GSL include files and library files,
+respectively.

@@ -1,0 +1,28 @@
+File number		0
+Filename		ssgen.ss
+Mass			4.213227e-33
+Bulk radius		6.684587e-14
+Bulk density		3.367460e+06
+Position		+0.000000e+00	+0.000000e+00	+0.000000e+00
+Velocity		+0.000000e+00	+0.000000e+00	+0.000000e+00
+Spin			+0.000000e+00	+0.000000e+00	+3.155815e+07
+Major axis		+0.000000	+1.000000	+0.000000
+Inter axis		+1.000000	+0.000000	+0.000000
+Minor axis		+0.000000	+0.000000	+1.000000
+Color			3
+Aggregate ID		-1
+
+File number		1
+Filename		ssgen.ss
+Mass			4.213227e-33
+Bulk radius		6.684587e-14
+Bulk density		3.367460e+06
+Position		+1.671147e-13	+0.000000e+00	+3.342294e-14
+Velocity		-3.357424e-07	-7.966397e-22	+0.000000e+00
+Spin			+0.000000e+00	+0.000000e+00	+0.000000e+00
+Major axis		+0.000000	+1.000000	+0.000000
+Inter axis		+0.707107	+0.000000	-0.707107
+Minor axis		+0.707107	+0.000000	+0.707107
+Color			4
+Aggregate ID		-1
+

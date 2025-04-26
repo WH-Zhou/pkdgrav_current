@@ -1,0 +1,26 @@
+#!/bin/csh -f
+#
+# Searches for rogue MPI pkdgrav processes and kills them.
+#
+if ($#argv != 1) then
+	echo Usage: mpikill host-file
+	exit 1
+endif
+#
+if !(-f $argv) then
+	echo \"$argv\" not found
+	exit 1
+endif
+#
+set hosts = `awk '{print $1}' $argv`
+#
+if ($#hosts <= 0) then
+	echo No hosts found\!
+	exit 1
+endif
+#
+foreach host ($hosts)
+		echo -n $host...
+		\rsh $host 'uptime; killall pkdgrav'
+end
+#

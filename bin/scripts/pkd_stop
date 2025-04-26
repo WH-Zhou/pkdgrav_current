@@ -1,0 +1,28 @@
+#!/bin/csh -f
+#
+if ($#argv < 1) then
+	echo Usage: $0 run-dir [ run-dir ... ]
+	exit 1
+endif
+#
+foreach dir ($argv)
+	if !(-d $dir) then
+		echo $dir is not a directory -- skipped
+		continue
+	endif
+#	if !(-e $dir/.lockfile) then
+#		echo lockfile not found in $dir -- skipping
+#		continue
+#	endif
+	if (-e $dir/STOP) then
+		echo $dir already has a stopfile -- skipping
+		continue
+	endif
+	touch $dir/STOP
+	if ($status) then
+		echo Unable to create stopfile in $dir -- skipping
+	else
+		echo Stopfile created in $dir
+	endif
+end
+#

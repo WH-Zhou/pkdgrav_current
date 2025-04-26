@@ -1,0 +1,42 @@
+#!/bin/csh -f
+#
+# ssmrecord -- DCR 06/26/02
+# =========
+# Adds entries to ssm frames file. Does not check for image type match.
+#
+set me = `basename $0`
+alias ssgetopt "ssgetopt f:n: \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args < 1) then
+	echo "Usage: $me [ -f frames-file ] [ -n number-of-frames ] file [ file ... ]"
+	exit 1
+endif
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm # default
+if !(-e $frames_file) then
+	echo $me\: $frames_file not found
+	exit 1
+endif
+#
+set arg = `ssgetopt n $argv`
+if ("$arg" == "") then
+	@ n = 1 # default
+else
+	@ n = $arg
+endif
+if ($n < 1) then
+	echo $me\: Invalid number of frames
+	exit 1
+endif
+#
+foreach file ($args)
+	if !(-e $file) echo $me\: Warning: $file does not exist
+	@ i = 0
+	while ($i < $n)
+		echo $file >> $frames_file
+		@ i++
+	end
+end
+#

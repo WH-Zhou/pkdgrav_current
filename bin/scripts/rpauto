@@ -1,0 +1,339 @@
+#!/bin/csh
+#
+# Automates running of pkdgrav rubble pile collision experiments. If an
+# argument is given, logging will be disabled. Note certain files and soft
+# links will be generated if they do not exist already. Other files may be
+# modified.
+#
+set master	= ~dcr
+set log		= rpauto.log
+set tmp		= .rpauto.tmp
+set exec	= pkdgrav
+set pkdpar	= ss.par
+set rpgpar	= rpg.par
+set world	= world.ss
+set timezero	= 00000
+set plotscript	= rpa.sm
+set hostlist	= mpi.htab
+#
+set me = 'rpauto:'
+alias echox echo $me
+alias echoq echo -n $me '\!* \(Y/N\)\?\ '
+alias getyn 'set yn = $<; set yn = `echo $yn | tr a-z A-Z`'
+#
+set rundir = `pwd`
+echox run directory is $rundir
+#
+@ logging = 1
+if ($#argv) then
+	echox logging disabled
+	@ logging = 0
+	set log = /dev/null
+else
+	echox logging to $log
+endif
+#
+if !(-e $exec) then
+	echox $exec executable missing...
+	echox try looking in\:
+	if (-d $master/bin/$OS) then
+		echox \\t $master/bin/$OS
+	endif
+	if (-d $master/src/pkd/pkdgrav) then
+		echox \\t $master/src/pkd/pkdgrav
+	endif
+	echox \\t ..
+	exit 1
+endif
+#
+if (-l $exec) then
+	echox WARNING: $exec is a soft link
+endif
+#
+if !(-e $pkdpar) then
+	echox $exec parameter file $pkdpar missing...
+	if (-e $master/etc/$pkdpar) then
+		echox try using $master/etc/$pkdpar as a template
+	endif
+	exit 1
+endif
+#
+set outname = `awk '/OutName/{print $3}' $pkdpar`
+if ($outname != "ss") then
+	echox WARNING: achOutName in $pkdpar is not \"ss\"
+endif
+#
+set subpath = `awk '/SubPath/{print $3}' $pkdpar`
+if ($?PTOOLS_DATA_PATH) then
+	set runpath = $PTOOLS_DATA_PATH/$subpath
+endif
+rm -f $rundir/$tmp
+if (-d $runpath) then
+	touch $runpath/$tmp
+endif
+if !(-e $rundir/$tmp) then
+	echox run directory conflict detected...
+	echox check settings\:
+	if ($?PTOOLS_DATA_PATH) then
+		echox PTOOLS_DATA_PATH = $PTOOLS_DATA_PATH
+		echox \(this is probably set by a ~ shell rc file\)
+	endif
+	echox achSubPathDir in $pkdpar = $subpath
+	exit 1
+endif
+rm -f $rundir/$tmp
+unset subpath
+#
+@ restart = `awk '/Restart/{print $3}' $pkdpar`
+if ($restart) then
+	echox restart requested...
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		echoq Is this OK
+		getyn
+	end
+	if ($yn == N) then
+		sed '/Restart/s/'$restart'/0/' $pkdpar >! $tmp
+		mv -f $tmp $pkdpar
+		@ restart = 0
+	else
+		if !(-e $outname.chk || -e $outname.chk0 || -e $outname.chk1) then
+			echox no checkpoint files found...need at least $outname.chk
+			echox aborting...
+			exit 1
+		endif
+		set newest = `ls -t $outname.chk* | awk '{print $1}'`
+		if ($newest != $outname.chk) then
+			echox $newest is more recent than $outname.chk...
+			set yn = ""
+			while ($yn != Y && $yn != N)
+				echoq Use more recent checkpoint \[WARNING: $outname.chk will be erased\]
+				getyn
+			end
+			if ($yn == Y) then
+				rm -f $outname.chk
+				cp $newest $outname.chk
+			endif
+		endif
+	endif
+endif
+#
+if (-e .lockfile && !($restart)) then
+	echox $exec lockfile detected...
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		echoq Override \[WARNING: will erase all data\!\]
+		getyn
+	end
+	if ($yn == Y) then
+		nukess
+	else
+		if (-e $outname.chk0 || -e $outname.chk1) then
+			set yn = ""
+			while ($yn != Y && $yn != N)
+				echoq Restart from last checkpoint
+				getyn
+			end
+			@ restart = ($yn == Y)
+			if ($restart) then
+				set newest = `ls -t $outname.chk? | awk '{print $1}'`
+				echox using $newest
+				rm -f $outname.chk
+				cp $newest $outname.chk
+				sed '/Restart/s/0/1/' $pkdpar >! $tmp
+				mv -f $tmp $pkdpar
+			else
+				echox aborting
+				exit 1
+			endif
+		else
+			echox no checkpoint found...aborting
+			exit 1
+		endif
+	endif
+endif
+#
+set infile = `awk '/InFile/{print $3}' $pkdpar`
+#
+if !($restart) then
+	if ($infile != $world) then
+		echox $exec currently expecting $infile, not $world
+		set yn = ""
+		while ($yn != Y && $yn != N)
+			echoq Change to $world
+			getyn
+		end
+		if ($yn == Y) then
+			sed 's/'$infile'/'$world'/' $pkdpar >! $tmp
+			mv -f $tmp $pkdpar
+		endif
+	endif
+	#
+	if (-e $rpgpar) then
+		set rpgdat = `awk -F\" '/Output/{print $2}' $rpgpar`
+	else
+		echox initial conditions parameter file $rpgpar missing...
+		if (-e $master/etc/$rpgpar) then
+			echox try using $master/etc/$rpgpar as a template if needed
+		endif
+		if (!(-e $world) && !(-e $infile)) then
+			echox may be unable to generate initial conditions
+		endif
+	endif
+endif
+#
+echox updating $pkdpar...
+sed '/bFandG/s/1/0/' $pkdpar |\
+	sed '/bHeliocentric/s/1/0/' |\
+	sed '/bFindRejects/s/1/0/' |\
+	sed '/iOutcomes/s/1/2/' |\
+	sed '/bDoCollLog/s/1/0/' >! $tmp
+mv -f $tmp $pkdpar
+#
+if ($restart) then
+	if ($logging && (-e $log)) then
+		echox preserving old log file
+		touch $log.old
+		cat $log >> $log.old
+	endif
+else
+	@ runrpg = 0
+	if (-e $rpgpar) then
+		if (-e $rpgdat) then
+			echox rp initial conditions data file $rpgdat exists...
+			set yn = ""
+			while ($yn != Y && $yn != N)
+				echoq Overwrite
+				getyn
+			end
+			@ runrpg = ($yn == Y)
+		else
+			echox $rpgdat not found...
+			set yn = ""
+			while ($yn != Y && $yn != N)
+				echoq Run rpg
+				getyn
+			end
+			@ runrpg = ($yn == Y)
+		endif
+	endif
+	#
+	if ($runrpg) then
+		echox running rpg...
+		rpg
+		set rv = $status
+		if ($rv) then
+			echox rpg error $rv detected...aborting
+			exit $rv
+		endif
+	endif
+	unset runrpg
+	#
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		echoq Run rpx
+		getyn
+	end
+	if ($yn == Y) then
+		echox running rpx...
+		rpx
+		set rv = $status
+		if ($rv) then
+			echox rpx error $rv detected...aborting
+			exit $rv
+		endif
+	endif
+	#
+	if !(-e $infile) then
+		echox initial conditions file $infile not found
+		exit 1
+	endif
+endif
+#
+if (-e $infile && (!(-l $outname.$timezero) || !(-e $outname.$timezero))) then
+	echox soft linking $infile to $outname.$timezero
+	rm -f $outname.$timezero
+	ln -s $infile $outname.$timezero
+endif
+#
+if !(-e $plotscript) then
+	echox copying plotting script...
+	cp $master/etc/$plotscript .
+endif
+#
+set yn = ""
+while ($yn != Y && $yn != N)
+	echoq Run in multi-processor mode
+	getyn
+end
+@ parallel = ($yn == Y)
+if ($parallel && $HOST != coma && $HOST != fornax) then
+	if !(-e $hostlist) then
+		echox host list $hostlist missing...
+		if (-e $master/etc/$hostlist) then
+			echox try using $master/etc/$hostlist as a template
+		endif
+		exit 1
+	endif
+	#
+	set x = `hostname`
+	set host = `nslookup $x | awk '/Name/{print $2}' | awk -F. '{print $1}'`
+	set x = `awk '{if ($2 == 0) print $1}' $hostlist`
+	set master = `nslookup $x | awk '/Name/{print $2}' | awk -F. '{print $1}'`
+	if ($host != $master) then
+		echox hostname $host does not match master $master in $hostlist
+		exit 1
+	endif
+	unset master
+	unset host
+	unset x
+	#
+	echox updating $hostlist
+	set execpath = $runpath/$exec # DEBUG rundir would be nicer!
+	awk '{print $1 " " $2 " " '\"$execpath\"'}' $hostlist >! $tmp
+	mv -f $tmp $hostlist
+	unset execpath
+	#
+endif	
+#
+while (1)
+	if ($parallel) then
+		echox running $exec in multi-processor mode...
+		if ($HOST == coma) then
+			echox \[NOTE: be sure $exec compiled with \"make sgi\"\]
+			echox WARNING USING ONLY 2 PROCESSORS
+			mpirun -np 2 ./$exec $pkdpar >&! $log
+			@ rv = 0
+			echox \[WARNING\: unable to check $exec return status under MPI\]
+		else if ($HOST == fornax) then
+			echox \[NOTE: be sure $exec compiled with \"make pthread\"\]
+			echox WARNING USING ONLY 2 PROCESSORS
+			./$exec -sz 2 $pkdpar >&! $log
+			@ rv = $status
+		else
+			echox \[NOTE: be sure $exec compiled with \"make mpi\"\]
+			mpikill
+			mpirun -p4pg $hostlist ./$exec $pkdpar >&! $log
+			@ rv = 0
+			echox \[WARNING\: unable to check $exec return status under MPI\]
+			mpikill
+		endif
+	else
+		echox running $exec in single-processor mode...
+		if ($logging) then
+			(time ./$exec $pkdpar) >&! $log
+			@ rv = $status
+		else
+			./$exec $pkdpar >& /dev/null
+			@ rv = $status
+		endif
+	endif
+	echox $exec returned status code $rv...
+	if ($rv == 0) then
+		echox all done\!
+	else
+		echox unknown error...aborting
+	endif
+	exit $rv
+end
+#

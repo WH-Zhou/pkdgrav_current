@@ -1,0 +1,10 @@
+lengthunit 6.68445e-14 # 1 cm in AU
+
+wall # floor
+  type plane
+  origin 0 0 -5
+
+wall
+  type cylinder-infinite
+  radius 5.55 # 1% larger for drawing to avoid contact spots
+  transparency 0.95

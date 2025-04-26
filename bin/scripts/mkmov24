@@ -1,0 +1,182 @@
+#!/bin/csh -f
+#
+setenv DRAWFILE ssdraw.par
+setenv BASE ss
+#
+if !(-e $DRAWFILE) then
+	echo `basename $0`: Required file $DRAWFILE missing.
+	exit 1
+endif
+#
+@ frame_width = `awk '/Frame size/{print $3}' $DRAWFILE`
+#
+@ force = 0
+@ keep = 0
+@ nth = 1
+set movie_type = ras
+#
+if ($#argv > 4) goto usage
+if ($#argv == 4) then
+	if ($argv[4] != force) goto usage
+	@ force = 1
+endif
+if ($#argv >= 3) then
+	if ($argv[3] != keep) goto usage
+	@ keep = 1
+endif
+if ($#argv >= 2) then
+	(@ nth = $argv[2] >& /dev/null) # awkward valid input test
+	if ($status) then
+		goto usage
+	else
+		@ nth = $argv[2]
+		if ($nth <= 0) goto usage
+	endif
+endif
+if ($#argv >= 1) then
+	set movie_type = $argv[1]
+endif
+#
+# parameter check
+#
+@ shape = `awk '/Particle shape/{print $3}' $DRAWFILE`
+if ($movie_type == pov && $shape != 2) then
+	echo `basename $0`: Particle shape in $DRAWFILE must be 2 for POV-Ray output.
+	goto usage
+else if ($movie_type != pov && $shape == 2) then
+	echo `basename $0`: Particle shape in $DRAWFILE cannot be 2 for this movie type.
+	goto usage
+endif
+if ($movie_type == pov) then
+	set povrayinc = `awk '/Shape file/{print $3}' $DRAWFILE | sed 's/\"//g'`
+	if !(-e $povrayinc) then
+		echo `basename $0`: Required file $povrayinc missing.
+		goto usage
+	endif
+endif
+#
+if ($movie_type == gif) then
+	set ssminit_args = '-i gif -m gif'
+	set ssdraw_out   = ras
+	set convert_out  = gif
+else if ($movie_type == pov) then
+	set ssminit_args = '-i png'
+	set ssdraw_out = pov.gz
+	set convert_out = png
+else if ($movie_type == ras) then
+	set ssminit_args =
+	set ssdraw_out = ras
+	set convert_out = ppm
+else
+	goto usage
+endif
+#
+# check for "reduced" files first...
+/bin/csh -c 'set files = ($BASE.*.r)' >& /dev/null
+if ($status) then
+	set files = ($BASE.[0-9]*[0-9]) # change as needed
+else
+	set files = ($BASE.*.r)
+endif
+#
+ssminit $ssminit_args -s $frame_width
+if ($status) then
+	echo `basename $0`: Problem during ssminit.
+	exit 1
+endif
+# need to do it this way because inertia option of ssdraw 
+# only works with list of frames given on command line...
+@ i = 1
+@ j = $nth
+rm -f .mkmov.tmp
+touch .mkmov.tmp
+while ($i <= $#files)
+	if ($j == $nth) then
+		echo $files[$i] >> .mkmov.tmp
+		@ j = 1
+	else
+		@ j++
+	endif
+	@ i++
+end
+set ssfiles = (`cat .mkmov.tmp`)
+rm -f .mkmov.tmp
+if (!($force) && ($keep)) then
+	# prune from list any files already processed
+	set pruned = ()
+	foreach file ($ssfiles)
+		if !(-e $file.$ssdraw_out) set pruned = ($pruned $file)
+	end
+	echo `basename $0`: Number of new files to process = $#pruned
+	if ($#pruned > 0) then
+		ssmdraw24 $pruned
+		if ($status) then
+			echo `basename $0`: Problem during ssmdraw24.
+			exit 1
+		endif
+	endif
+	unset pruned
+else
+	echo Number of files to process = $#ssfiles
+	if ($#ssfiles > 0) then
+		ssmdraw24 $ssfiles
+		if ($status) then
+			echo `basename $0`: Problem during ssmdraw24.
+			exit 1
+		endif
+	endif
+endif
+set files = ($ssfiles) # reallocate space
+@ i = 1
+while ($i <= $#ssfiles)
+	set files[$i] = $ssfiles[$i].$ssdraw_out
+	@ i++
+end
+if (!($force) && ($keep)) then
+	# another pruning...
+	set pruned = ()
+	foreach file ($ssfiles)
+		if !(-e $file.$convert_out) set pruned = ($pruned $file.$ssdraw_out)
+	end
+	set files = ($pruned)
+	unset pruned
+endif
+if ($#files > 0) then
+	if ($keep) then
+		ssmconvert $files
+		@ rv = $status
+	else
+		ssmconvert -x $files
+		@ rv = $status
+	endif
+	if ($rv) then
+		echo `basename $0`: Problem during ssmconvert.
+		exit 1
+	endif
+endif
+set files = ($ssfiles)
+@ i = 1
+while ($i <= $#ssfiles)
+	set files[$i] = $ssfiles[$i].$convert_out
+	@ i++
+end
+ssmrecord $files
+if ($keep) then
+	ssmmakemovie
+	@ rv = $status
+else
+	ssmmakemovie -x
+	@ rv = $status
+endif
+if ($rv) then
+	echo `basename $0`: Problem during ssmmakemovie.
+	exit 1
+endif
+exit 0
+usage:
+echo Usage: `basename $0` [ movie-type [ n-th [ keep [ force ] ] ] ]
+echo '       where movie-type is one of gif, pov, ras (default ras),'
+echo '       n-th means use every n-th frame (default 1),'
+echo '       keep means to preserve the movie frames,'
+echo '       and force means to overwrite any preserved frames.'
+exit 1

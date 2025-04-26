@@ -1,0 +1,124 @@
+define ps 0			# device: 0=X11, 1=postencap
+define color 1			# color toggle
+define log_file "ss.log"	# log file
+#
+define pi 3.141592654
+#
+if ($ps) {
+	define yellow magenta
+	lweight 3
+} else {
+	define yellow yellow
+}
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+if ($ps == 0) {dev x11 -geom 800x800+0+0}
+#
+expand 0.8
+location $($gx1 + 1000) $gx2 $gy1 $gy2
+#
+data $log_file
+read {t 1 te 3 ke 4 pe 5 lx 7 ly 8 lz 9}
+set t = t/(2*$pi) # convert to "years"
+define norm (abs(te[0]))
+if ($norm == 0) {
+	echo WARNING: Zero initial total energy -- normalization disabled
+	define norm 1
+}
+set dte = (te - te[0])/$norm
+set dke = (ke - ke[0])/$norm
+set dpe = (pe - pe[0])/$norm
+set l = sqrt(lx*lx + ly*ly + lz*lz)
+define norm (abs(l[0]))
+if ($norm == 0) {
+	echo WARNING: Zero initial total ang mom -- normalization disabled
+	define norm 1
+}
+if (l[dimen(l)-1]/$norm > 1e6) {
+	echo WARNING: Large change in total ang mom -- normalization disabled
+	define norm 1
+}
+set lx = (lx - lx[0])/$norm
+set ly = (ly - ly[0])/$norm
+set lz = (lz - lz[0])/$norm
+set l = (l - l[0])/$norm
+#
+if ($ps) {dev postencap sse_e.ps}
+window 1 -3 1 3
+limits t dte
+box 0 2 0 0
+ylabel \Delta E/|E_0|
+if ($color) {ctype yellow}
+connect t dte
+if ($color) {ctype default}
+window 1 -3 1 2
+limits t dke
+box 0 2 0 0
+ylabel \Delta T/|E_0|
+if ($color) {ctype red}
+connect t dke
+if ($color) {ctype default}
+window 1 -3 1 1
+limits t dpe
+box
+xlabel Time (yr)
+ylabel \Delta U/|E_0|
+if ($color) {ctype green}
+connect t dpe
+if ($color) {ctype default}
+next
+window 1 1 1 1
+#
+if ($ps) {dev postencap sse_l.ps}
+window 2 2 1 2
+limits t lx
+box
+xlabel Time (yr)
+ylabel \Delta L_x/|L_0|
+if ($color) {ctype red}
+connect t lx
+if ($color) {ctype default}
+window 2 2 2 2
+limits t ly
+box 1 1 0 0
+xlabel Time (yr)
+ylabel \raise1000\Delta L_y/|L_0|
+if ($color) {ctype green}
+connect t ly
+if ($color) {ctype default}
+window 2 2 1 1
+limits t lz
+box
+xlabel Time (yr)
+ylabel \Delta L_z/|L_0|
+if ($color) {ctype blue}
+connect t lz
+if ($color) {ctype default}
+window 2 2 2 1
+limits t l
+box 1 1 0 0
+xlabel Time (yr)
+ylabel \raise1000\Delta |L|/|L_0|
+if ($color) {ctype yellow}
+connect t l
+if ($color) {ctype default}
+next
+window 1 1 1 1
+#
+quit
+#

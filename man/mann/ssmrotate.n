@@ -1,0 +1,65 @@
+.TH ssmrotate n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmrotate \- Rotates scene around specified axes (calls \fBssdraw\fP).
+.SH SYNOPSIS
+ssmrotate [-A \fIfirst-rotation-fraction\fP] [-B \fIsecond\fP] [-C
+\fIthird\fP] [-a \fIfirst-rotation-axis\fP] [-b \fIsecond\fP] [-c
+\fIthird\fP] [-f \fIframes-file\fP] [-n \fInumber-of-frames\fP]
+\fIss-file\fP
+.SH DESCRIPTION
+As the name implies, this script allows you to rotate the camera angle
+in a scene described by a single ss file.  It does this by making
+incremental changes to the camera position and sky vector in the
+\fBssdraw\fP parameter file (given in the frames file header) and
+redrawing the scene each time.  Note that this does not rotate the
+data in the ss file, only the viewing angle.  Output filenames consist
+of the basename with "r####.xxx" appended, where "####" is the frame
+number (starting at 0000 by default) and "xxx" is either ras or pov,
+depending on whether Sun rasterfiles or POV-Ray script files have been
+specified in the \fBssdraw\fP parameter file.  Generating more frames
+gives a smoother camera motion.  The script supports up to 3
+consecutive rotations about arbitrary axes (this is sufficient to
+achieve any desired viewing angle from a single ss file).  Axes must
+be specified as 3-vectors with components separated by commas (no spaces), e.g. -a
+0,0,-1 for a rotation about the negative z-axis.  The rotation
+angle is set by specifying the fraction of a complete revolution to
+carry out (negative values are allowed).  Note that the rotations are
+carried out in the body frame of reference, with the body frame
+initially corresponding to the space frame.  As an example, to perform
+a 90-degree rotation about each body axis in turn, use:
+ 
+-A 0.25 -a 1,0,0 -B 0.25 -b 0,1,0 -C 0.25 -c 0,0,1
+ 
+The number of frames used for a rotation is proportional to the
+relative fraction of a full rotation for that axis (rounded up for the
+first rotation if necessary to achieve the exact desired number of
+frames, e.g. 34 for the first rotation in the above example if a total
+of 100 frames was requested).
+.SH OPTIONS
+.IP "-A \fInum\fP"
+.IP "-B \fInum\fP"
+.IP "-C \fInum\fP"
+Fractions of rotations to perform around the first, second, and third
+axes, respectively (default 1, 0, 0).
+.IP "-a \fIvector\fP"
+.IP "-b \fIvector\fP"
+.IP "-c \fIvector\fP"
+Vectors specifying the axis directions for the first, second, and
+third rotations, respectively (default (0,1,0) for the first
+rotation).  The vectors are automatically normalized to unit vectors
+as necessary.
+.IP "-f \fIfile\fP"
+Read animation parameters from \fIfile\fP (default frames.ssm).
+.IP "-n \fInum\fP"
+Generate \fInum\fP frames (default 30).
+.SH SEE ALSO
+ssdraw(n), ssmflyby(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

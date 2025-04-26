@@ -1,0 +1,23 @@
+#!/bin/csh -f
+#
+set ss_core = PUT_SS_CORE_PATH_HERE
+#
+if (-e output) then
+	echo '' >> output
+else
+	touch output
+endif
+#
+setenv PKDGRAV_CHECKPOINT_FDL $ss_core/etc/checkpoint.fdl
+if !(-f $PKDGRAV_CHECKPOINT_FDL) then
+	echo ERROR: $PKDGRAV_CHECKPOINT_FDL not found >> output
+	exit 1
+endif
+#
+set script = `basename $0`
+echo $script START `date` on `hostname | awk -F. '{print $1}'` >> output
+echo Target directory is `pwd` >> output
+./pkdgrav ss.par >>& output
+set rv = $status
+echo $script DONE `date` status $rv >> output
+exit $rv

@@ -1,0 +1,20 @@
+Benchmarking Macbook Pro (Retina, 15-inch, Late 2013) 2.6 GHz Intel Core i7
+
+Tested on 1,000,000 particles for 10 steps in ssrun directory:
+
+1. Edit ssic.par to set number of particles to 1 million.
+2. Edit ss.par to set number of timesteps to 10.
+3. Generate initial conditions with "ssic" (no arguments).
+4. Check for rejects with "./pkdgrav ss.par".
+5. Regenerate initial conditions with "ssic -r".  Repeat 4 & 5 as needed.
+6. Run the benchmark (4 cores).
+
+For mpi: time mpirun -np 4 ./pkdgrav -rejects ss.par
+
+For pthread: time ./pkdgrav -sz 4 -rejects ss.par
+
+Results (8/3/16):
+
+mpi: 194.876u 5.251s 0:50.29 397.9%  0+0k 0+34io 334pf+0w
+
+pthread: 173.570u 1.807s 0:46.71 375.4%  0+0k 0+31io 0pf+0w

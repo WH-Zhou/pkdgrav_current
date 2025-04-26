@@ -1,0 +1,27 @@
+VPATH = ..
+TOP	= $(VPATH)/../../..
+INCS = -I$(TOP)/include
+
+SRCS = mdl.c
+OBJS = $(SRCS:.c=.o)
+
+default: $(OBJS)
+
+DEPDIR = .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+*.o: ../../../Makefile ../../../Makefile.in Makefile.recurse
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	$(CC) -c $(CFLAGS) $(DEPFLAGS) $(PTHREAD_CFLAGS) $(INCS) $(VPATH)/$*.c
+	$(POSTCOMPILE)
+	
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
+
+clean:
+	rm -rf ../$(OS)

@@ -1,0 +1,142 @@
+# Sample pkdgrav parameters for Solar System RUBBLE run...
+#
+nDigits		= 9		# output file digit mask; compare with nSteps
+bRestart	= 0		# restart also needs .chk# file copied to .chk
+bParaRead	= 1		# disable parallel reads & writes if master disk
+bParaWrite	= 1		#  unreachable from slaves (or other problem)
+bKDK		= 1		# for now always use Kick-Drift-Kick scheme
+dDelta		= 0.06283185307	# maximum step in units of "yr" / 2 pi
+nSteps		= 10000000	# number of steps in intervals of dDelta
+iStartStep	= 0		# use this to change starting step numbering
+dTheta		= 0.5		# critical opening angle for tree (in radians)
+bDoGravity	= 1		# include interparticle gravity?
+bHeliocentric	= 1		# use heliocentric reference frame?
+dCentMass	= 1.0		# central mass in helio (or patch) frame (M_Sun)
+bFandG		= 0		# use Gauss' F & G function (Kepler) drift?
+achDataSubPath	= .		# extension to PTOOLS_DATA_PATH, if used
+achInFile	= ssic.ss	# initial conditions file
+achOutName	= ss		# output file prefix
+dExtraStore	= 1.0		# fractional extra storage per processor
+bStandard	= 0		# use old Tipsy I/O format if applicable
+#
+# Multistepping...
+#
+bGravStep	= 0		# use "gravity" stepping?
+bEpsAccStep	= 0		# use "epsilon-on-a" stepping?
+bSqrtPhiStep	= 0		# divide dEta by 3.5 to get steps/orbit
+bDensityStep	= 0		# nominal 0.02-0.03 (same for SqrtPhi)
+dEta		= 0		# 2 pi / dEta steps per orbit
+iMaxRung	= 7		# min step = dDelta / 2^(iMaxRung - 1)
+#
+# Output control...
+#
+iOutInterval	= 100		# general output file interval in timesteps
+iLogInterval	= 100		# log interval in timesteps
+iCheckInterval	= 1000		# checkpoint interval in timesteps
+bVWarnings	= 1		# display warnings?
+bVStart		= 1		# display starting info?
+bVStep		= 0		# display step info? (incl. MFlops, cache, etc.)
+bVRungStat	= 0		# display multistepping rung statistics?
+bVDetails	= 0		# display very verbose details?
+bDoDensity	= 0		# output density files?
+bDodtOutput	= 0		# output timestep files?
+bDoIOrderOutput	= 0		# output iOrder numbers?
+#
+# External potentials...
+#
+bRotFrame	= 0		# use rotating frame?
+dOmega		= 0		# dOmega = 8766/T, T in hours
+dOmegaDot	= 0		# dOmegaDot = 8766x, x in 1/h/(yr/2pi)
+#
+# Patch stuff...
+# NOTE: dCentMass (above) MUST be set to a sensible value
+# NOTE: some values can be copied conveniently from patchic.log...
+#
+bPatch		= 0		# use orbiting patch reference frame?
+dOrbDist	= 0		# orbital distance of patch center (in AU)
+bPeriodic	= 0		# use periodic boundary conditions?
+dxPeriod	= 0		# x width of boundary (0 for none)
+dyPeriod	= 0		# y width of boundary (0 for none)
+dzPeriod	= 0		# z width of boundary (0 for none)
+nReplicas	= 0		# number of ghost rings to use
+bEwald		= 0		# apply Ewald correction?
+#
+bExtPert	= 0		# add external patch perturber?
+dPertOrbDist	= 0		# orbital distance of perturber (in AU)
+dPertMass	= 0		# mass of perturber (in M_Sun)
+dPertMaxZ	= 0		# max vertical displacement of perturber (in AU)
+dPertOrbFreqZ	= 0		# vert orb freq of perturber (in 2 pi rad/yr)
+dPertPhase	= 0		# initial orbital phase of perturber (in rad)
+dPertPhaseZ	= 0		# initial vertical phase of perturber (in rad)
+#
+bRandAzWrap	= 0		# randomize particles on azimuthal wrap?
+iStripOption	= 0		# 0=left only,1=right only,2=both
+dStripInner	= 0		# inner strip edge, patch width units (max 0.5)
+dStripOuter	= 0		# outer strip edge, patch width units (max 0.5)
+dVelDispX	= 0		# radial vel disp for randomization
+dVelDispY	= 0		# azimuthal vel disp for randomization
+dAvgVertAmp	= 0		# mean vertical oscillation amplitude (in AU)
+dAvgMass	= 0		# avg particle mass (in M_Sun) for randomization
+#
+# Support for simple gas drag...
+#
+bSimpleGasDrag	= 0		# use simple gas drag?
+bEpstein	= 1		# in Epstein regime?
+dGamma		= 1.0e-11	# coefficient for inverse stopping time
+#
+# Following parameters are unique to COLLISIONS code...
+#
+nSmooth		= 16		# neighbors to check for collision (1 disables)
+bFindRejects	= 0		# check for Hill sphere/particle overlap in ICs?
+iCollLogOption	= 0		# 0=none,1=verbose(text),2=terse(binary)
+dSmallStep	= 0.0		# 0 disables encounter detection [OBSOLETE!]
+dxUnifGrav	= 0.0		# x component of uniform gravity field
+dyUnifGrav	= 0.0		# y component of uniform gravity field
+dzUnifGrav	= 0.0		# z component of uniform gravity field
+iOutcomes	= 2		# 2^0=MERGE(1);2^1=BOUNCE(2);2^2=FRAG(4)
+dDensity	= 9.26e-3	# Merged particle density in cgs (0 to disable)
+iDensityAltCol	= 0		# Particle color for alternate density (0 none)
+dDensityAltVal	= 0.0		# Alternate particle density in cgs
+dBounceLimit	= 1.0		# Impact < this fraction of esc speed ==> merge
+iBounceOption	= 0		# 0=Const,1=F200,2=F120,3=Compacted,4=Glancing
+dEpsN		= 0.5		# normal restitution coefficient (1=elastic)
+dEpsT		= 1.0		# tangential restitution coefficient (1=elastic)
+iSlideOption	= 0		# 0=escape speed,1=maximum travel (see note)
+dSlideLimit	= 0.1		# value depends on slide option
+dSlideEpsN	= 1.0		# EpsN to use if impact speed < minimum
+dSlideEpsT	= 1.0		# EpsT to use if impact speed < minimum
+dCollapseLimit	= 1.0e-3		# Inelastic collapse detection limit
+dCollapseEpsN	= 1.0		# EpsN to use in event of inelastic collapse
+dCollapseEpsT	= 1.0		# EpsT to use in event of inelastic collapse
+dCrushLimit	= 0.0		# max speed squared in system units (or 0)
+dCrushEpsN	= 0.2		# EpsN to use if impact speed > maximum
+dCrushEpsT	= 1.0		# EpsT to use if impact speed > maximum
+bFixCollapse	= 1		# turn on to enable collapse fixes
+#
+# Note on slide option: option 0 limit is dSlideLimit times mutual escape
+# speed; option 1 limit is speed attained from rest after accelerating over
+# distance dSlideLimit in uniform gravity field. For option 1, dSlideLimit
+# should probably be 1% or less of maximum particle radius.
+#
+# Following parameters are unique to RUBBLE code...
+#
+dRubbleMinFracMass	= 0.2	# secondary > interpolate else rubble pile
+dRubMinMass		= 7.5e-10	# minimum planetesimal mass (M_Sun)
+iRubNumDynToBounce	= 5	# no. dynamical times in rubble bouncing phase
+iRubNumDynToMerge	= 15	# no. dynamical times in rubble merging phase
+nDustBins		= 15	# no. of dust bins (equally spaced)
+dDustBinsInner		= 0.5	# inner dust bin radius (AU)
+dDustBinsOuter		= 1.5	# outer dust bin radius (AU)
+dDustBinsScaleHeight	= 1e-4	# fixed scale height (AU)
+dDustBinsInitSigma	= 5.0	# initial surface mass density at 1 AU (g/cm^2)
+dDustBinsInitAlpha	= -1.5	# sigma(r) = k r^alpha (alpha != -2)
+iDustBinsApplyInt	= 10	# step interval between dust application
+#
+# For sandpiles only...
+#
+achWallFile	= ""		# use empty string for no walls
+#
+# For special particles...
+#
+achSpecialFile	= ""		# use empty string for no special particles
+#

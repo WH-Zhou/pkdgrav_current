@@ -1,0 +1,35 @@
+VPATH = ..
+TOP	= $(VPATH)/../..
+INCS = -I$(VPATH) -I$(TOP)/include
+
+SRCS = rastoppm.c
+OBJS = $(SRCS:.c=.o)
+
+TARGETS = rastoppm
+BIN_DEST = $(TOP)/bin/$(OS)
+
+all: $(TARGETS)
+
+$(TARGETS): rastoppm.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+DEPDIR = .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+*.o: ../../../Makefile ../../../Makefile.in Makefile.recurse
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	$(CC) -c $(CFLAGS) $(DEPFLAGS) $(INCS) $(VPATH)/$*.c
+	$(POSTCOMPILE)
+
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
+
+clean:
+	rm -rf ../$(OS)

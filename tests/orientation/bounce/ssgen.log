@@ -1,0 +1,13 @@
+Target particle radius = 1 cm
+Index of power law distribution = 0 
+Target particle radius uncertainty = 0 cm
+Gaussian distribution cutoff = 1 sigma
+Particle density = 2 g/cc
+Region dimensions = 0.02 x 0.02 x 0.02 m (rectangular)
+Number of particles = 1
+Minimum particle radius = 1 cm
+Maximum particle radius = 1 cm
+Suggested minimum nSmooth:
+   HSDEM = 4
+   SSDEM = 8
+   (note: a smaller value for SSDEM is possible depending on filling factor)

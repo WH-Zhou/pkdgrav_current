@@ -1,0 +1,14 @@
+Note about particle spins in the SLIDING_PATCH scheme:
+
+Zero spin in space (ss file) implies spin of -omega z-hat in patch frame.
+
+To make particles have zero spin in the patch frame, set their spins
+in the ss file to +omega z-hat.
+
+In a dense ring environment (lots of collisions per particle per
+orbit) this may not be important, because the system will quickly
+reach a new equilibrium and memory of the original spins will be lost.
+
+This needs to be checked/documented properly.
+
+For more about SLIDING_PATCH, also see README_vPred in this directory.

@@ -1,0 +1,62 @@
+#!/bin/csh -f
+#
+if ($#argv < 1) then
+	echo Usage: $0 run-dir [ run-dir ... ]
+	exit 1
+endif
+#
+foreach dir ($argv)
+	if !(-d $dir) then
+		echo $dir is not a directory -- skipped.
+		continue
+	endif
+	if ("$dir" == ".") then
+		 echo `basename $cwd`...
+	else
+		echo $dir...
+	endif
+	pushd $dir > /dev/null
+	set parfiles = (`\ls -1 | grep '\.par$'`)
+	if ($#parfiles == 0) then
+		echo No parameter '(.par)' files found.
+	else
+		set sspar
+		@ warning = 0
+		foreach parfile ($parfiles)
+			set a = `awk '/^nDigits/{print $3}' $parfile`
+			set b = `awk '/^nSteps/{print $3}' $parfile`
+			set c = `awk '/^achOutName/{print $3}' $parfile`
+			if ($a > 0 && $b > 0 && "$c" != "") then
+				if ("$sspar" != "" && $warning == 0) then
+					echo More than one ss par file.
+					@ warning++
+				endif
+				set sspar = $parfile
+				set nd = $a
+				set ns = $b
+				set basename = $c
+			endif
+		end
+		if ("$sspar" == "") then
+			echo No ss parameter file information found.
+		else
+			set zerofile = $basename.`echo '' | awk '{printf("%0'$nd'd",0)}'`
+			if !(-e $zerofile) echo NOTE $zerofile not found.
+			if !(-e $basename.log) then
+				echo $basename logfile not found.
+			else
+				echo Host: `head -5 $basename.log | tail -1 | awk '{print $4}'`
+			endif
+			if (-e condor.log) echo Date: `grep submitted condor.log | tail -1 | awk '{print $3" "$4}'`
+			set lastoutput = `\ls -1rt ss.[0-9]*[0-9]{,.r} | tail -1`
+			set n = `echo $lastoutput | sed 's/.r$//' | awk -F. '{print $NF}' | sed 's/^0*0//'`
+			if ("$n" == "") @ n = 0
+			echo RUN `echo '' | awk '{printf("%.1f%%",100*'$n'/'$ns')}'` PERCENT COMPLETE
+		echo Most recent update:
+		\ls -alrt | grep -v '^d' | tail -1
+		endif
+		echo =====================================
+	endif
+	popd >& /dev/null
+end
+#

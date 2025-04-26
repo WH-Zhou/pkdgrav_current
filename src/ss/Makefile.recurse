@@ -1,0 +1,59 @@
+VPATH = ..
+TOP = $(VPATH)/../..
+INCS = -I$(VPATH) -I$(TOP)/include
+
+SRCS = $(shell cd .. && ls *.c)
+OBJS = $(SRCS:.c=.o)
+
+TARGETS = $(SRCS:.c=)
+TARGETS := $(filter-out genchunk,$(TARGETS))
+TARGETS := $(filter-out matrix,$(TARGETS))
+TARGETS := $(filter-out random,$(TARGETS))
+TARGETS := $(filter-out rpu,$(TARGETS))
+TARGETS := $(filter-out ssio,$(TARGETS))
+TARGETS := $(filter-out wallsio,$(TARGETS))
+
+BIN_DEST = $(TOP)/bin/$(OS)
+
+# following used by more than one utility...
+SSOBJ = matrix.o random.o rpu.o ssio.o wallsio.o
+
+CFLAGS += $(PKD_AND_SS_CFLAGS)
+LDFLAGS += -L$(TOP)/lib/$(OS) 
+LDLIBS += -lmem_util -lraster -lrdpar -lvector -lcoords # -lm
+
+all: $(TARGETS)
+
+# only relink if corresponding source changes (or if *any* SSOBJ changes)...
+$(TARGETS): %: %.o $(SSOBJ)
+	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS) $(SSOBJ) $(LDLIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+DEPDIR = .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+*.o: ../../../Makefile ../../../Makefile.in Makefile.recurse
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	$(CC) -c $(CFLAGS) $(DEPFLAGS) $(INCS) $(VPATH)/$*.c
+	$(POSTCOMPILE)
+
+ifeq ($(PKDGRAV_TYPE), mpi)
+ifeq ($(USE_PARALLEL_IO), true)
+ssic: genchunk.o
+	$(CC) $(CFLAGS) -o $@ $@.o $(LDFLAGS) $(SSOBJ) genchunk.o $(LDLIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+endif
+endif
+
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
+
+clean:
+	rm -rf ../$(OS)

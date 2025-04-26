@@ -1,0 +1,55 @@
+#!/bin/csh -f
+#
+# pov -- DCR 94-10-19
+# ===================
+# Script to generate POV-Ray frames from .pov files.
+#
+if (-e ssdraw.par) then
+	set width = `awk '/Frame size/{print $3}' ssdraw.par`
+else
+	set width = 800 # frame width in pixels (height set by aspect ratio in file)
+endif
+#
+set make_ras = 0 # Toggle to control creation of .ras files (need PBMplus)
+set make_ppm = 0 # Toggle to control creation of .ppm files (ditto)
+#
+if ($#argv == 0) then
+	echo "Usage: $0 povfile1 [ povfile2 ... ]"
+	exit 1
+endif
+#
+foreach file ($argv)
+	if !(-e $file) then
+		echo $file not found -- skipping
+		continue
+	endif
+	set gzfile = $file
+	set file = `echo $gzfile | sed 's/.gz$//'`
+	if ($file != $gzfile) then
+		gunzip $gzfile >& /dev/null
+	endif
+	if (`echo $file | awk -F. '{print $NF}'` != pov) then
+	        echo $file':' expecting .pov suffix -- skipping
+		if ($file != $gzfile) then
+			gzip $file >& /dev/null
+		endif
+		continue
+	endif
+	set aspect_ratio = `awk '/camera/{print $9}' $file | sed 's/-x\*//'`
+	if ("$aspect_ratio" == "") set aspect_ratio = "1"
+	set height = `echo '' | awk '{print int('$width'/'$aspect_ratio')}'`
+	set base = `echo $file | sed s/.pov//`
+	povray -i$file -w$width -h$height +A -J -D -V
+	if ($file != $gzfile) then
+		gzip $file >& /dev/null
+	endif
+	if ($make_ras || $make_ppm) then
+		tgatoppm $base.tga >! $base.ppm
+	endif
+	if ($make_ras) then
+		ppmquant 256 $base.ppm | pnmtorast >! $base.ras
+		rm $base.ppm
+	endif
+	if ($make_ras || $make_ppm) rm $base.tga
+end
+#

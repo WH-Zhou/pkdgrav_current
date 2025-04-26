@@ -1,0 +1,195 @@
+SRCS	= bin2ss.c bt2ss.c companion.c demparams.c patcha.c patchic.c ranics.c rotate.c rp2.c rpa.c rpg.c rpu.c rpx.c spr2txt.c spra.c ss2bin.c ss2bt.c ss2red.c ssa.c sscube.c ssdraw.c ssg.c ssgen.c ssgetopt.c ssgh.c ssic.c ssinfo.c ssio.c ssn.c sst.c sstidal.c sstumbler.c ssx.c txt2spr.c wallsio.c
+TARGETS = bin2ss bt2ss companion demparams patcha patchic ranics rotate rp2 rpa rpg rpx spr2txt spra ss2bin ss2bt ss2red ssa sscube ssdraw ssg ssgen ssgetopt ssgh ssic ssinfo ssn sst sstidal sstumbler ssx txt2spr
+
+VPATH	= ..
+TOP	= $(VPATH)/../..
+
+INCS	= -I$(VPATH) -I$(TOP)/include
+LIBS	= -L$(TOP)/lib/$(OS) -lmem_util -lraster -lrdpar -lvector -lcoords -lm
+
+BIN_DEST = $(TOP)/bin/$(OS)
+
+OS	= BUILD_OS
+CC	= BUILD_CC
+CFLAGS	= BUILD_CFLAGS
+LDFLAGS	= BUILD_LDFLAGS
+
+OBJS = $(SRCS:.c=.o)
+
+RAND_OBJ	= random.o
+RPU_OBJ		= rpu.o
+SSIO_OBJ	= ssio.o
+WALLSIO_OBJ	= wallsio.o
+
+default: all
+
+all: $(TARGETS)
+
+bin2ss: bin2ss.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+bt2ss: bt2ss.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+companion.o:
+	$(CC) -c $(CFLAGS) -DSS_CORE $(INCS) $(VPATH)/$*.c
+
+companion: companion.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+demparams: demparams.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+patcha: patcha.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+patchic: patchic.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ranics: ranics.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+rotate: rotate.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+rp2: rp2.o $(RPU_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RPU_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+rpa: rpa.o $(RPU_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RPU_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+rpg: rpg.o $(RPU_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RPU_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+rpx: rpx.o $(RPU_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RPU_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+spr2txt: spr2txt.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+spra: spra.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ss2bin: ss2bin.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ss2bt: ss2bt.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ss2red: ss2red.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssa: ssa.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+sscube: sscube.o $(RAND_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RAND_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssdraw: ssdraw.o $(SSIO_OBJ) $(WALLSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(WALLSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssg: ssg.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssgen: ssgen.o $(RAND_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RAND_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssgetopt: ssgetopt.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssgh: ssgh.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssic: ssic.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssinfo: ssinfo.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssn: ssn.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+sst: sst.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+sstidal: sstidal.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+sstumbler: sstumbler.o $(RAND_OBJ) $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(RAND_OBJ) $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+ssx: ssx.o $(SSIO_OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(SSIO_OBJ) $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+txt2spr: txt2spr.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $@.o $(LIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+.c.o:
+	$(CC) -c $(CFLAGS) $(INCS) $(VPATH)/$*.c
+
+$(OBJS): $(VPATH)/build
+$(OBJS): $(VPATH)/Makefile.tmpl

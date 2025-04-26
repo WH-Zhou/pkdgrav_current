@@ -1,0 +1,29 @@
+File number		0
+Filename		rpg.ss
+Mass			3.758198e-18
+Bulk radius		6.645588e-09
+Bulk density		3.623376e+06
+Position		-7.158997e-26	-1.938895e-26	+1.491458e-27
+Velocity		-4.441442e-22	-4.003311e-22	-4.312192e-22
+Spin			-5.206063e-16	+3.253218e-16	+2.626881e-15
+Major axis		-0.000000	+0.630673	+0.776049
+Inter axis		-0.000000	+0.776049	-0.630673
+Minor axis		+1.000000	+0.000000	+0.000000
+Color			3
+Aggregate ID		0
+
+File number		1
+Filename		rpg.ss
+Mass			3.758198e-18
+Bulk radius		6.645588e-09
+Bulk density		3.623376e+06
+Position		+1.671147e-08	-1.938895e-26	+1.491458e-27
+Velocity		-3.357424e-04	-3.818132e-25	-2.085058e-24
+Spin			-5.206063e-16	+1.585630e-13	-3.737601e-14
+Major axis		-0.000000	+0.630673	+0.776049
+Inter axis		-0.000000	+0.776049	-0.630673
+Minor axis		+1.000000	+0.000000	+0.000000
+Color			5
+Aggregate ID		1
+
+BARYCENTRIC CORRECTION APPLIED

@@ -1,0 +1,11 @@
+# ranics.par
+# ==========
+#
+Number of particles		100
+Particle mass			1.0
+Particle radius			0.01
+Domain radius			1.0	# must be no smaller than particle radius
+KE fraction of virial		1.0	# can be zero, or larger than one
+Radial fraction of speed	0.5	# must be >= 0 & <= 1 (0.5 = isotropic)
+					# (or < 0 to force pure random speeds)
+#

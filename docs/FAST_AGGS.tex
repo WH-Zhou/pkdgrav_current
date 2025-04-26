@@ -1,0 +1,100 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+
+\huge{\pkd\ \code{FAST\_AGGS} Documentation}\\
+\bigskip\bigskip
+\Large{Last Update 6/3/20}\\
+\bigskip\bigskip
+\large{Created by Joe DeMartini 9/16/19}\\
+
+\end{flushleft}
+
+\section{OVERVIEW}
+
+\code{FAST\_AGGS} is a \code{pkdgrav} compile option that drastically speeds up aggregate 
+particle calculations performed in the code, under the condition that the number of free 
+bodies is comparable to the number of aggregates, by using a binary search algorithm, 
+followed by a cache line approach which exploits particle ordering on the processor, to find 
+an aggregate's constituent particles, rather than doing a brute-force search, as in the old 
+code. The specific use criterion is: the \code{FAST\_AGGS} compile option should not be used 
+when there are very few aggregates made up of very many particles in the problem, but 
+\textbf{only when there are very many aggregates each containing very few particles}. Only in 
+the latter case will the efficiency increase when using \code{FAST\_AGGS}.\\
+
+\medskip
+
+\underline{Notes/Requirements}:
+\begin{enumerate}
+\item \code{FAST\_AGGS} is not compatible with the \code{AGGS\_IN\_PATCH} compile option.
+\item \code{FAST\_AGGS} requires that particles and aggregates be in the same order on the
+processor: if aggregate 0 is a dumbbell, it must contain particles with iOrder number 0 and 1,
+aggregate 1 must contain particles with iOrder 2 and 3, etc. This is a key stipulation of the
+updated searching algorithm in order to gain maximum increased efficiency, and is not always
+upheld when aggregates are added using \code{rpx}.
+\item \code{FAST\_AGGS} requires that, in simulations with both aggregates and single spheres,
+the particles in aggregates be listed first on the processor, followed by the individual
+spherical particles. When ordering particles in these types of simulations, be careful to
+abide by the above ordering rule in bullet 2, and the necessary size ordering for
+\code{DEM\_FIXED\_BALL} (See SSDEM.pdf page 4). 
+\item Different options of \code{DEM\_FIXED\_BALL} require different kinds of particle size
+ordering. Since aggregates must be in iOrder number order for this algorithm, aggregates
+constructed of different-sized particles are not compatible with both \code{FAST\_AGGS} and
+\code{DEM\_FIXED\_BALL}.
+\end{enumerate}
+\medskip
+For a specific, well-commented example of how the new code is written, see 
+\code{pkdAggsGetAccel} and its associated functions in \code{SOURCE/src/pkdgrav/aggs.c}.
+
+\section{Setup}
+In order to make use of \code{FAST\_AGGS}, one must uncomment both of
+the following options in Makefile.in:
+\begin{verbatim}
+USE_AGGREGATES=true
+USE_FAST_AGGS=true
+\end{verbatim}
+Then one can recompile the code and the new routines will take effect.
+
+Again, we note that \code{FAST\_AGGS} is not compatible with the
+\code{AGGS\_IN\_PATCH} compile option. Otherwise, all restrictions
+that previously applied to Aggregates will apply here as well.
+
+\section{Backwards Compatibility}
+\code{FAST\_AGGS} is entirely backwards-compatible with the older aggregate
+routines in \pkd. To use the older aggregate routines, simply leave the
+\code{USE\_FAST\_AGGS=true} option commented in Makefile.in, while uncommenting
+\code{USE\_AGGREGATES=true}. This will revert to the older versions of the
+functions used for aggregate calculations.
+
+\section{Affected Functions}
+\begin{verbatim}
+pkdAggsCountPart
+pkdAggsSetSpacePos
+pkdAggsSetSpaceVel
+pkdAggsSetSpaceSpins
+pkdAggsGetAccel
+pkdAggsGetTorque
+pkdAggsSetBodyPos
+pkdAggsGetCOM
+pkdAggsGetAxesAndSpin
+
+pkdAggsSetMassDEM (formerly pkdDEMAggsSetMass)
+pstAggsSetMassDEM
+
+msrAggsGravity
+msrAggsFind 
+\end{verbatim} 
+
+The first set are the functions to which a binary search was added for improved efficiency. 
+The first function in the second set had a binary search was added, and both functions were 
+renamed, updated, and moved to files/locations where they fit better (\code{pkdAggsSetMassDEM}
+to \code{aggs.c} and \code{pstAggsSetMassDEM} changed and updated in \code{pst.c} under the
+\code{AGGS} banner, rather than \code{DEM}). The last set are functions in \code{master.c} to
+which a call to \code{msrReorder} was added, so that the particles are in aggregate number
+order on the processor - this is an important step for the new algorithm that searches
+for particles in an aggregate.
+
+
+\end{document}

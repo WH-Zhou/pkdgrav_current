@@ -1,0 +1,8 @@
+Making on map-wenzhou-2.local Darwin-arm64 Fri Apr 25 21:08:14 CEST 2025
+make[1]: Nothing to be done for `all'.
+make[1]: Nothing to be done for `all'.
+make[1]: Nothing to be done for `all'.
+gcc -c -O2 -g  -DNUMREC  -MT patchgen.o -MMD -MP -MF .d/patchgen.Td -I.. -I../../../include ../patchgen.c
+mv -f .d/patchgen.Td .d/patchgen.d
+gcc -O2 -g  -DNUMREC  -o patchgen patchgen.o   -L../../../lib/Darwin-arm64  matrix.o random.o rpu.o ssio.o wallsio.o  -lm   -lmem_util -lraster -lrdpar -lvector -lcoords 
+make[2]: Nothing to be done for `default'.

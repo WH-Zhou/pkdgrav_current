@@ -1,0 +1,46 @@
+#!/bin/csh -f
+#
+# ssmfadeout -- DCR 08/10/01
+# ==========
+# Creates fade-out PPM files from supplied PPM file.
+#
+set me = `basename $0`
+alias ssgetopt ssgetopt "n: \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args != 1) then
+	echo "Usage: $me [ -n number-of-frames ] ppm-file"
+	exit 1
+endif
+#
+set arg = `ssgetopt n $argv`
+if ("$arg" == "") then
+	@ n = 30 # default
+else
+	@ n = $arg
+endif
+if ($n <= 1 || $n > 10000) then
+	echo $me\: Invalid number of frames
+	exit 1
+endif
+#
+set file = $args[1]
+if !(-e $file) then
+	echo $me\: $file not found
+	exit 1
+endif
+set base = $file
+set ext = `echo $file | awk -F. '{print $NF}'`
+if ("$ext" == "ppm") set base = `echo $file | sed s/\.ppm//`
+unset ext
+#
+@ i = 0
+while ($i < $n)
+	set frame = `echo '' | awk '{printf("%04d",'$i')}'`
+	echo $me\: frame $frame
+	set f = `echo '' | awk '{print 1-'$i'/('$n'-1)}'`
+	set outfile = $base'fo'$frame.ppm
+	ppmdim $f $file >! $outfile
+	@ i++
+end
+#

@@ -1,0 +1,328 @@
+#!/bin/csh -f
+#
+# Automates running of pkdgrav Solar System simulations. If an argument is
+# given, logging will be disabled. Note certain files and soft links will be
+# generated if they do not exist already. Other files may be modified.
+#
+set me = 'ssauto:'
+alias echox echo $me
+alias echoq echo -n $me '\!* \(Y/N\)\?\ '
+alias getyn 'set yn = $<; set yn = `echo $yn | tr a-z A-Z`'
+#
+alias nukess 'rm -f .lockfile core output rejects.out ss.{collisions,log}; rm -f *~ ss.{[0-9],chk}* ssa.???{,?} >& /dev/null'
+#
+set rundir = `pwd`
+echox run directory is $rundir
+#
+if !(-e ssauto.par) then
+	echox unable to locate ssauto.par
+	echox try looking in ss_core/etc/
+	exit 1
+endif
+#
+source ssauto.par
+set OS = `uname | sed 's/ //'`-`uname -m | sed 's/ //'`
+#
+@ logging = 1
+if ($#argv) then
+	echox logging disabled
+	@ logging = 0
+	set logfile = /dev/null
+else
+	echox logging to $logfile
+endif
+#
+if !(-e $exec) then
+	echox $exec executable missing...
+	echox try looking in ss_core/src/pkdgrav/'{null,mpi,...}'/$OS/
+	exit 1
+endif
+#
+if !(-e $pkdpar) then
+	echox $exec parameter file $pkdpar missing...
+	echox try looking in ss_core/etc/
+	exit 1
+endif
+#
+set outname = `awk '/OutName/{print $3}' $pkdpar`
+if ($outname != ss) then
+	echox WARNING: achOutName in $pkdpar is not \"ss\"
+endif
+#
+set runpath = `awk '/SubPath/{print $3}' $pkdpar`
+if ("$runpath" == "") set runpath = .
+if ($?PTOOLS_DATA_PATH) then
+	set runpath = $PTOOLS_DATA_PATH/$runpath
+endif
+rm -f $rundir/.ssauto.tmp
+if (-d $runpath) then
+	touch $runpath/.ssauto.tmp
+endif
+if !(-e $rundir/.ssauto.tmp) then
+	echox run directory conflict detected...
+	echox check settings\:
+	if ($?PTOOLS_DATA_PATH) then
+		echox PTOOLS_DATA_PATH = $PTOOLS_DATA_PATH
+		echox \(this is probably set in ~/.cshrc\)
+	endif
+	echox runpath = $runpath
+	exit 1
+endif
+rm -f $rundir/.ssauto.tmp
+#
+if (-e .lockfile) then
+	echox $exec lockfile detected...
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		echoq Erase old data
+		getyn
+	end
+	if ($yn == Y) then
+		nukess
+	endif
+else
+	nukess
+endif
+#
+if !(-e $ssicpar) then
+	echox initial conditions parameter file $ssicpar missing...
+	echox try looking in ss_core/etc/
+	echox \[$ssicpar is needed even if ICs already exist...sorry\!\]
+	exit 1
+endif
+set ssicdat = `awk -F\" '/Output/{print $2}' $ssicpar`
+#
+set infile = `awk '/InFile/{print $3}' $pkdpar`
+if ($infile != $ssicdat) then
+	echox \"$infile\" in $pkdpar does not match \"$ssicdat\" in $ssicpar
+	exit 1
+endif
+unset infile
+#
+@ newics = 0
+@ rejects = 0
+if ($logging && (-e $logfile)) then
+	echox preserving old log file
+	touch $logfile.old
+	cat $logfile >> $logfile.old
+endif
+if !(-e $outname.chk || -e $outname.chk0 || -e $outname.chk1) then
+	@ newics = 1
+	if (-e $ssicdat) then
+		echox ss initial conditions data file $ssicdat exists...
+		set yn = ""
+		while ($yn != Y && $yn != N)
+			echoq Overwrite
+			getyn
+		end
+		@ newics = ($yn == Y)
+	endif
+	#
+	if ($newics) then
+		if (`awk '/Number of planets/{print $4}' $ssicpar`) then
+			set planets = `awk -F\" '/Planet data/{print $2}' $ssicpar`
+			if ("$planets" != "") then
+				if !(-e $planets) then
+					echox planet data file \"$planets\" missing...
+					echox try looking in ss_core/etc/
+					exit 1
+				endif
+			endif
+		endif
+		#
+		echox running ssic...
+		$bindir/$OS/ssic -f
+		@ rv = $status
+		if ($rv) then
+			echox ssic error $rv detected...aborting
+			exit 1
+		endif
+	endif
+	#
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		echoq Fix rejects
+		getyn
+	end
+	@ rejects = ($yn == Y)
+	#
+	set flag = `awk '/FindRejects/{print $3}' $pkdpar`
+	if ($flag != $rejects) then
+		echox updating $pkdpar
+		sed '/FindRejects/s/'$flag'/'$rejects'/' $pkdpar >! .ssauto.tmp
+		mv -f .ssauto.tmp $pkdpar
+	endif
+endif
+#
+if (-e $plotscript) then
+	if (`find $ssicpar -newer $plotscript -print` == $ssicpar) then
+		echox regenerating plotting script...
+		$bindir/scripts/ssp
+	endif
+else
+	echox generating plotting script...
+	$bindir/scripts/ssp
+	if ($status) then
+		echox WARNING: problem running ssp...skipping
+	endif
+endif
+#
+set mode = ""
+while ($mode != null && $mode != mpich && $mode != lam && $mode != openmpi && $mode != pthread)
+	echox "Enter mode [null|mpich|lam|openmpi|pthread]: "
+	set mode = $<
+end
+@ parallel = ($mode != null)
+@ asknp = 0
+if ($mode == mpich || $mode == lam || $mode == openmpi) then
+	set yn = ""
+	while ($yn != Y && $yn != N)
+		if ($mode == mpich) then
+			echoq Use $mpich_hosts file
+		else if ($mode == lam) then
+			echoq Use $lam_hosts file
+		else
+			echoq Use $openmpi_hosts file
+		endif
+		getyn
+	end
+	@ asknp = ($yn == N)
+else if ($mode == pthread) then
+	@ asknp = 1
+endif
+if ($mode == mpich && !($asknp)) then
+	if ("$runpath" == ".") echo WARNING: Using mpich with runpath = .
+	if !(-e $mpich_hosts) then
+		echox host list $mpich_hosts missing...
+		echox try looking in ss_core/etc/
+		exit 1
+	endif
+	#
+	set x = `hostname`
+	set host = `nslookup $x | awk '/Name/{print $2}' | awk -F. '{print $1}'`
+	set x = `awk '{if ($2 == 0) print $1}' $hostlist`
+	set master = `nslookup $x | awk '/Name/{print $2}' | awk -F. '{print $1}'`
+	if ($host != $master) then
+		echox host $host does not match master $master in $mpich_hosts
+		exit 1
+	endif
+	unset master
+	unset host
+	unset x
+	#
+	echox updating $mpich_hosts
+	set execpath = $runpath/$exec # runpath more global than rundir
+	awk '{print $1 " " $2 " " '\"$execpath\"'}' $mpich_hosts >! .ssauto.tmp
+	mv -f .ssauto.tmp $mpich_hosts
+	unset execpath
+	#
+else if ($mode == lam && !($asknp)) then
+	if !(-e $lam_hosts) then
+		echox host list $lam_hosts missing...
+		echox try looking in ss_core/etc/
+		exit 1
+	endif
+	# @ np = `wc $lam_hosts | awk '{print $1}'`
+else if ($mode == openmpi && !($asknp)) then
+	if !(-e $openmpi_hosts) then
+		echox host list $openmpi_hosts missing...
+		echox try looking in ss_core/etc/
+		exit 1
+	endif
+else if ($asknp) then
+	@ np = 0
+	while ($np <= 0)
+		echox "enter number of processors/threads to use: "
+		@ np = $<
+	end
+endif
+#
+if (`awk '/heliocentric/{print $4}' $ssicpar` != `awk '/Heliocentric/{print $3}' $pkdpar`) then
+	echox heliocentric flags in $ssicpar and $pkdpar do not match
+	exit 1
+endif
+#
+while (1)
+	echox soft linking $ssicdat to $outname.$timezero
+	rm -f $outname.$timezero
+	ln -s $ssicdat $outname.$timezero
+	if ($parallel) then
+		echox running $exec in multi-processor mode...
+		if ($mode == mpich) then
+			echox \[NOTE: be sure $exec compiled with mpi enabled\]
+			if ($asknp) then
+				echox \[WARNING: rogue mpi processes ignored\]
+				mpirun -np $np ./$exec $pkdpar >&! $logfile
+				echox \[WARNING: rogue mpi processes ignored\]
+			else
+				$bindir/scripts/mpikill $mpich_hosts
+				mpirun -p4pg $mpich_hosts ./$exec $pkdpar >&! $logfile
+				$bindir/scripts/mpikill $mpich_hosts
+			endif
+			@ rv = 0
+			echox \[WARNING\: unable to check $exec return status under MPI\]
+		else if ($mode == lam) then
+			echox \[NOTE: be sure $exec compiled with mpi enabled\]
+			if ($asknp) then
+				recon
+				if ($status) then
+					echox LAM MPI problem...aborting
+					exit 1
+				endif
+				wipe -v
+				lamboot -v
+				mpirun -np $np ./$exec $pkdpar >&! $logfile
+				wipe -v
+			else
+				recon $lam_hosts
+				if ($status) then
+					echox LAM MPI problem...aborting
+					exit 1
+				endif
+				wipe -v $lam_hosts
+				lamboot -v $lam_hosts
+				mpirun --hostfile $lam_hosts ./$exec $pkdpar >&! $logfile
+				wipe -v $lam_hosts
+			endif
+			@ rv = 0
+			echox \[WARNING\: unable to check $exec return status under MPI\]
+		else if ($mode == openmpi) then
+			echox \[NOTE: be sure $exec compiled with mpi enabled, and correct module has been loaded\]
+			if ($asknp) then
+				mpirun -np $np ./$exec $pkdpar >&! $logfile
+			else
+				mpirun --hostfile $openmpi_hosts ./$exec $pkdpar >&! $logfile
+			endif
+		else if ($mode == pthread) then
+			echox \[NOTE: be sure $exec compiled with pthreads enabled\]
+			./$exec -sz $np $pkdpar >&! $logfile
+			@ rv = $status
+		endif
+	else
+		echox running $exec in single-processor mode...
+		./$exec $pkdpar >&! $logfile
+		@ rv = $status
+	endif
+	echox $exec returned status code $rv...
+	if (-e $rejfile) then
+		echox rejects detected
+		if !($rejects) then
+			echox not instructed to fix rejects...aborting
+			exit 1
+		endif
+		echox regenerating initial conditions...
+		$bindir/$OS/ssic -r
+		nukess
+		continue
+	endif
+	if ($rv != 0) then
+		echox unknown error...aborting
+		exit $rv
+	endif
+	echox all done\!
+	if ($rejects) then
+		echox rerun ssauto to start simulation
+	endif
+	exit 0
+end
+#

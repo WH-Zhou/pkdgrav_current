@@ -1,0 +1,45 @@
+Basic tests of the code featuring rubble pile collisions.
+
+Procedure:
+
+1. Enter the run directory of your choice and copy the Makefile.in
+   file there to the source root (make a copy of the original first!).
+   The run directories are described below.
+
+2. Compile the code then copy the executable (from the bin
+   subdirectory) to the run directory.
+
+3. Run the simulation in the run directory with "./pkdgrav ss.par".
+   When done, use "mkmov.py" to generate a movie to compare with
+   expected.mp4 in the directory.
+
+Run directories:
+
+1. hard_sphere: collides 2 rubble piles using the hard-sphere version
+   of the code.  Compare with soft_sphere.  Note an overlap warning is
+   expected.
+
+2. hard_sphere_aggs: in this version the "rubble piles" are frozen
+   into solid aggregates.  Compare with soft_sphere_aggs.
+
+3. soft_sphere: collides 2 rubble piles using the soft-sphere version
+   of the code.  Compared with hard_sphere (which finishes sooner),
+   there is greater energy transmission along the collision axis,
+   because soft sphere does a better job at simulating the "Newton's
+   Cradle" effect.  Note this scenario is precisely the same as the
+   example in the soft-sphere tutorial (in docs/SSDEM_tutorial.pdf).
+
+4. soft_sphere_aggs: in this version the "rubble piles" are frozen
+   into solid aggregates.  Compared with hard_sphere_aggs, the
+   collision outcome maintains symmetry, whereas the hard-sphere
+   version exhibits rotation, because hard sphere treats collisions
+   one particle pair at a time and therefore cannot simulate
+   simultaneous impacts between multiple pairs.
+
+Possible future updates:
+
+1. Run with TRACK_ORIENT on.
+
+2. Consider running rpa.py for comparisons.
+
+3. Confirm using optimal parameters via demparams.

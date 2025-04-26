@@ -1,0 +1,154 @@
+#!/bin/csh -f
+#
+# ssminit -- DCR 08/15/01
+# =======
+# Initializes frames file for ssm utilities.
+#
+set me = `basename $0`
+alias ssgetopt ssgetopt "f:i:m:p:s: \!*"
+#
+set image_types = (gif jpg png ppm ras tga xwd) # pov is a special case
+set movie_types = (fli gif mpg) # only mpg supports multiple image types
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args > 0) then
+	echo "Usage: $me [ -f frames-file ] [ -i image-type ] [ -m movie-type ] [ -p ssdraw-parameter-file ] [ -s frame-size ]"
+	exit 1
+endif
+#
+# Get arguments and/or set defaults...
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm
+#
+set image_type = `ssgetopt i $argv`
+if ("$image_type" == "") set image_type = ppm
+@ ok = 0
+foreach type ($image_types)
+	if ("$image_type" == "$type") then
+		@ ok = 1
+		break
+	endif
+end
+if !($ok) then
+	echo $me\: Invalid image type "($image_type)"
+	echo $me\: Supported types are: $image_types
+	exit 1
+endif
+#
+set movie_type = `ssgetopt m $argv`
+if ("$movie_type" == "") set movie_type = mpg
+@ ok = 0
+foreach type ($movie_types)
+	if ("$movie_type" == "$type") then
+		@ ok = 1
+		break
+	endif
+end
+if !($ok) then
+	echo $me\: Invalid movie type "($movie_type)"
+	echo $me\: Supported types are: $movie_types
+	exit 1
+endif
+#
+if ($movie_type == fli && $image_type != ppm) then
+	echo $me\: Only ppm images allowed for fli movies
+	exit 1
+endif
+if ($movie_type == gif && $image_type != gif) then
+	echo $me\: Only gif images allowed for gif movies
+	exit 1
+endif
+#
+set parfile = `ssgetopt p $argv`
+if ("$parfile" == "") set parfile = ssdraw.par
+if !(-e $parfile) echo $me\: WARNING: $parfile not found
+#
+set arg = `ssgetopt s $argv`
+if ("$arg" == "") then
+	@ size = 400 # default
+else
+	@ size = $arg
+endif
+if ($size < 1) then
+	echo $me\: Invalid frame size
+	exit 1
+endif
+#
+echo $me\: Initializing $frames_file
+rm -f $frames_file
+touch $frames_file
+if ($status) then
+	echo $me\: Unable to create $frames_file
+	exit 1
+endif
+#
+echo $image_type $movie_type $parfile $size >> $frames_file
+#
+if (-e $parfile) then
+	@ old_size = `awk '/Frame size/{print $3}' $parfile`
+	if ($old_size != $size) then
+		echo $me\: Setting frame size in $parfile...
+		sed "/Frame size/s/$old_size/$size/" $parfile >! .tmp$me
+		if (-l $parfile) echo $me\: WARNING: $parfile soft link broken
+		mv -f .tmp$me $parfile
+	endif
+endif
+#
+exit 0 # no longer use mpeg.par
+if ($movie_type == mpg) then
+	if !(-e mpeg.par) then
+		echo $me\: WARNING: mpeg.par not found
+		echo $me\: Building mpeg.par...
+		cat >! mpeg.par << EOF
+PATTERN IBBPBBPBBPBBPB
+OUTPUT movie.mpg
+INPUT_DIR .
+INPUT
+END_INPUT
+BASE_FILE_FORMAT PPM
+INPUT_CONVERT *
+GOP_SIZE 0
+SLICES_PER_FRAME 1
+PIXEL HALF
+RANGE 10
+PSEARCH_ALG LOGARITHMIC
+BSEARCH_ALG SIMPLE
+IQSCALE 4
+PQSCALE 16
+BQSCALE 16
+REFERENCE_FRAME DECODED
+FORCE_ENCODE_LAST_FRAME
+EOF
+	endif
+	#
+	echo $me\: Updating mpeg.par...
+	set format = `awk '/BASE_FILE_FORMAT/{print $2}' mpeg.par`
+	if ("$format" == "") then
+		echo $me\: Corrupt mpeg.par
+	endif
+	if ($image_type == jpg) then
+		sed /BASE_FILE_FORMAT/s/$format/JPEG/ mpeg.par >! .tmp$me
+	else
+		sed /BASE_FILE_FORMAT/s/$format/PPM/ mpeg.par >! .tmp$me
+	endif
+	mv -f .tmp$me mpeg.par
+	#
+	set convert = ''
+	if ($image_type == gif) set convert = ' giftopnm'
+	if ($image_type == png) set convert = ' pngtopnm'
+	if ($image_type == pov) set convert = ' pngtopnm'
+	if ($image_type == ras) set convert = ' rastoppm'
+	if ($image_type == tga) set convert = ' tgatoppm'
+	if ($image_type == xwd) set convert = ' xwdtopnm'
+	@ l = `awk '/INPUT_CONVERT/{print NR}' mpeg.par`
+	if ($l == 0) then
+		echo $me\: Corrupt mpeg.par
+		exit 1
+	endif
+	awk '{if (NR < '$l') {print $0}}' mpeg.par >! .tmp$me
+	echo INPUT_CONVERT$convert' *' >> .tmp$me
+	awk '{if (NR > '$l') {print $0}}' mpeg.par >> .tmp$me
+	mv -f .tmp$me mpeg.par
+endif
+#

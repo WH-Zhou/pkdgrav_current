@@ -1,0 +1,29 @@
+.TH ssmrecord n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmrecord \- Adds entries to ssm frames file.
+.SH SYNOPSIS
+ssmrecord [-f \fIframes-file\fP] [-n number-of-frames] file [file ...]
+.SH DESCRIPTION
+One or more image filenames can be added to the frames file using this
+script.  You can also use this script to insert a "pause" into a movie
+(by repeating the same frame many times), to slow a movie down (by
+duplicating each frame, for example), or to simply add one or more
+frames to the frames file without doing an append manually.  Note that
+the arguments are not checked to ensure the image types are consistent
+with the image type set by \fBssminit\fP.
+.SH OPTIONS
+.IP "-f \fIfile\fP"
+Append filenames to \fIfile\fP (default frames.ssm).
+.IP "-n \fInum\fP"
+Repeat each entry \fInum\fP times (default 1).
+.SH SEE ALSO
+ssminit(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

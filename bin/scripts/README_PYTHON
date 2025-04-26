@@ -1,0 +1,19 @@
+bulk_density_general.py
+-- script by Clara Maurel to calculate bulk density of rubble pile by
+   sampling interior volume.  Invoke with name of ss file to measure.
+   Choose between using a neighbor search to specify the sample volume,
+   or a fixed fraction of the rubble pile bulk radius.
+
+rpa.py (executable)
+-- script by DCR to plot rpa output data (replaces rpa.sm).
+
+ssgen2Agg.py (executable)
+-- script by Ron Ballouz to generate random distributions of small rigid
+   aggregates of fixed shape.  Menu driven.
+
+ssio.py
+-- script by Ron Ballouz to read ss files.  See ssio_py.pdf in docs
+   directory.
+
+sstime.py
+-- script by DCR to set ss file time.  See 'sstime.py --help'.

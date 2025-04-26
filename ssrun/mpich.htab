@@ -1,0 +1,4 @@
+masterhost 0 /FULLPATHGOESHERE/pkdgrav
+slave1host 1 /FULLPATHGOESHERE/pkdgrav
+slave2host 1 /FULLPATHGOESHERE/pkdgrav
+etc

@@ -1,0 +1,28 @@
+Simple tests of particle orientation tracking.
+
+Procedure:
+
+1. Copy Makefile.in to the source root (make a copy of the original
+   first!), compile the code, then copy the executable (from the bin
+   subdirectory) to the desired run directory (described below).  Note
+   the same executable can be used for each test.
+
+3. Run the simulation in the run directory with "./pkdgrav ss.par".
+   Instructions for making plots and movies for comparison are given
+   in the run directory descriptions.  Note movie generation requires
+   POV-Ray to be installed.  The Python scripts require Python 3.X
+   with NumPy and Matplotlib.
+
+Run directories:
+
+1. bounce: 2 particles collide in free space, 1 particle spinning.
+   Make movie with "mkmov.py -o" and compare with expected.mp4.  Run
+   "python spins.py" and compare with particle0.png & particle1.png.
+
+2. cylinder: 20 particles fill a cylinder.  Make movie with "mkmov.py
+   -o -r 90" and compare with expected.mp4 -- note this movie takes a
+   while to build!
+
+3. roll: 1 particle rolls to a stop.  Make movie with "mkmov.py -o -r
+   90" and compare with expected.mp4.  Run "python roll.py" and
+   compare with rollplot.png

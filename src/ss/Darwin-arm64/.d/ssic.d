@@ -1,0 +1,25 @@
+ssic.o: ../ssic.c ../ss.h ../../../include/ssdefs.h \
+  ../../../include/ssio.h ../boolean.h ../../../include/rdpar.h \
+  ../../../include/copyright.h ../../../include/vector.h \
+  ../../../include/scalar.h ../../../include/coords.h \
+  ../../../include/random.h
+
+../ss.h:
+
+../../../include/ssdefs.h:
+
+../../../include/ssio.h:
+
+../boolean.h:
+
+../../../include/rdpar.h:
+
+../../../include/copyright.h:
+
+../../../include/vector.h:
+
+../../../include/scalar.h:
+
+../../../include/coords.h:
+
+../../../include/random.h:

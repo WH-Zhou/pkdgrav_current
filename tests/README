@@ -1,0 +1,5 @@
+See README files in each folder for instructions.
+
+Note these are all serial tests (single core).
+
+As Makefile.in & ss.par templates change, versions here may need to be updated.

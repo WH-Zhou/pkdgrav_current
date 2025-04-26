@@ -1,0 +1,56 @@
+# ssic.par
+# ========
+#
+# central object...
+#
+Central mass			1.0	# In M_Sun; if binary: total star mass
+Use heliocentric frame?		1	# 1=yes,0=no
+#
+# binary...
+#
+Insert binary?			0	# 1=yes,0=no
+Star A Mass			1.0	# In solar masses
+Star B Mass			1.0	# In solar masses
+Separation			0.2	# In AU
+Eccentricity			0.5	# 0 <= e < 1
+#
+# planetesimals...
+#
+Number of planetesimals		100000	# Initial conditions only
+Total mass			2.0	# In Earth masses
+Planetesimal density		2.0	# In g/cc (or 0 to use radius)
+Planetesimal radius		0.0	# In AU (< 0 for km or 0 to use density)
+Planetesimal radius scaling	1.0	# Any value greater than zero
+Inner orbital radius		0.5	# In AU (Mercury = 0.38)
+Outer orbital radius		2.0	# In AU (Mars = 1.52)
+Projected surface density exp.	-1.5	# i.e. sigma = k r^alpha (alpha != -2)
+Distribution functions		0	# 0=RAYLEIGH,1=GAUSSIAN
+Eccentricity dispersion		4.0	# In reduced Hill radii
+Inclination dispersion		2.0	# In reduced Hill radii
+Maximum eccentricity		0.1	# Between 0 and 1
+Maximum inclination		10.0	# In degrees, between 0 and 90
+#
+# seed...
+#
+Seed mass			0.0	# In solar masses (use 0 to disable)
+Seed density			0.0	# In g/cc (or 0 to use radius)
+Seed radius			0.0	# In AU (< 0 for km or 0 to use density)
+Seed radius scaling		1.0	# Any value greater than zero
+Seed semi-major axis		0.0	# In AU
+Seed eccentricity		0.0	# 0 <= e < 1
+Seed inclination		0.0	# In degrees, between 0 and 180
+Seed gap scaling		0.0	# Size of gap in units of chaos radius
+#
+# planets...
+#
+Number of planets		0	# Up to 4 (Jup, Sat, Ura, & Nep)
+Align invariable plane?		0
+Planet data file name		""	# Leave empty to generate own planets
+#
+# miscellaneous...
+#
+Start time			0.0	# In Julian years
+Adjust c-o-m to origin?		0
+Radius is softening?		0
+Output file name		"ssic.ss"
+#

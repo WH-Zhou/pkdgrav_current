@@ -1,0 +1,56 @@
+WARNING: iOutcomes ignored with soft sphere DEM.
+PKDGRAV running on 20 processors.
+pstRandSeedGenerator(): processor 0 random seed = 5021043955082535430
+pstRandSeedGenerator(): processor 16 random seed = 1360593657997955133
+pstRandSeedGenerator(): processor 8 random seed = 3841559011913039510
+pstRandSeedGenerator(): processor 4 random seed = 2300335809339640491
+pstRandSeedGenerator(): processor 12 random seed = 13379992693137073344
+pstRandSeedGenerator(): processor 2 random seed = 3840631620581642859
+pstRandSeedGenerator(): processor 18 random seed = 17102443169511361793
+pstRandSeedGenerator(): processor 10 random seed = 16172256046685941212
+pstRandSeedGenerator(): processor 6 random seed = 4542407081626888551
+pstRandSeedGenerator(): processor 14 random seed = 11924294008056304260
+pstRandSeedGenerator(): processor 1 random seed = 8318379850434311018
+pstRandSeedGenerator(): processor 17 random seed = 16792860599966530677
+pstRandSeedGenerator(): processor 9 random seed = 6559087084422172894
+pstRandSeedGenerator(): processor 5 random seed = 1973128049487648271
+pstRandSeedGenerator(): processor 13 random seed = 4158972216438065768
+pstRandSeedGenerator(): processor 3 random seed = 4282576695875735057
+pstRandSeedGenerator(): processor 19 random seed = 17074313683040689115
+pstRandSeedGenerator(): processor 11 random seed = 3367204566561539543
+pstRandSeedGenerator(): processor 7 random seed = 7878760583369938676
+pstRandSeedGenerator(): processor 15 random seed = 5649453907593526024
+NOTE: Times reported as "Wallclock" are in fact CPU times.
+WARNING: No floating point exception trapping enabled
+NOTE: MAX_NUM_OVERLAPS_PER_PARTICLE = 12
+==> .dem head size = 24, data size = 1104 per particle
+DEM_FIXED_BALL: Particles should be in INCREASING radius order.
+Input file...N=996,Time=0.02
+Simulation to Time:0.04
+WARNING: time stamp in initial conditions is non-zero
+==> assuming dTime = 0.0 instead.
+Initializing DEM parameters...
+DEM_FIXED_BALL: set to maximum radius: 6.6845871e-10
+(use caution if any particle is a LOT bigger than the others)
+DEM initialization complete, time = 0.026115 sec.
+CnPreFac and CtPreFac calculated on pid 9
+CnPreFac and CtPreFac calculated on pid 4
+CnPreFac and CtPreFac calculated on pid 0
+CnPreFac and CtPreFac calculated on pid 6
+CnPreFac and CtPreFac calculated on pid 10
+CnPreFac and CtPreFac calculated on pid 1
+CnPreFac and CtPreFac calculated on pid 16
+CnPreFac and CtPreFac calculated on pid 7
+CnPreFac and CtPreFac calculated on pid 2
+CnPreFac and CtPreFac calculated on pid 15
+CnPreFac and CtPreFac calculated on pid 18
+CnPreFac and CtPreFac calculated on pid 12
+CnPreFac and CtPreFac calculated on pid 11
+CnPreFac and CtPreFac calculated on pid 3
+CnPreFac and CtPreFac calculated on pid 19
+CnPreFac and CtPreFac calculated on pid 5
+CnPreFac and CtPreFac calculated on pid 17
+CnPreFac and CtPreFac calculated on pid 14
+CnPreFac and CtPreFac calculated on pid 8
+CnPreFac and CtPreFac calculated on pid 13
+slurmstepd: error: *** JOB 49860113 ON suv001 CANCELLED AT 2024-01-10T22:20:28 ***

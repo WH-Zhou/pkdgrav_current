@@ -1,0 +1,29 @@
+.TH ssmmakemovie n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmmakemovie \- Parses frames file to generate movie.
+.SH SYNOPSIS
+ssmmakemovie [-f \fIframes-file\fP] [-x]
+.SH DESCRIPTION
+This script can be called when you are through adding new images to
+the frames file and are ready to turn the result into a movie.  The
+frames file header is read to determine the movie type (see
+\fBssminit\fP).  FLI movies are created using \fBppm2fli\fP; GIF
+movies are created using \fBgifsicle\fP (if available, otherwise \fBconvert\fP will be attempted); MPEG movies are created using
+\fBmpeg_encode\fP (you need the mpeg.par parameter file).  The movie
+is named movie.fli, movie.gif, or movie.mpg, respectively.
+.SH OPTIONS
+.IP "-f \fIfile\fP"
+Read animation parameters from \fIfile\fP (default frames.ssm).
+.IP -x
+Expunge all image frames after generating movie.
+.SH SEE ALSO
+convert(1), gifsicle(1), mpeg_encode(1), ppm2fli(1), ssminit(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

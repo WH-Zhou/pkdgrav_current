@@ -1,0 +1,1 @@
+aggs.o: ../../aggs.c

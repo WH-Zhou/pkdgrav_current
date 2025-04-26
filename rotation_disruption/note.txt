@@ -1,0 +1,17 @@
+Note for pkdgrav
+
+1. Step for make:
+(1) make
+(2) create a new directory
+(3) move etc/rpg.par, etc/ss.par, etc ssdraw.par to the new directory
+(4) move bin/Linux-x86_64/pkdgrave to the new directory
+
+2. To reate a rubble pile: rpg
+
+3. To modify the rubble pile: rpx
+
+4. To see which parameter (e.g. dKn, dDelta) to change: demparams
+
+5. To get the information of a rubble pile: ssinfo
+
+6. modify the simulation configuration: vim ss.par

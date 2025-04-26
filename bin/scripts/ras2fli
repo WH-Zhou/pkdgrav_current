@@ -1,0 +1,29 @@
+#!/bin/csh -f
+#
+set lis = movie.lis
+set fli = movie.fli
+#
+set size = 400x400
+#
+set path = ($path .)
+#
+if ($#argv < 1) then
+	echo Usage: ras2fli ras-file [ ras-file ... ]
+	exit 1
+endif
+#
+rm -f $lis
+touch $lis
+#
+foreach ras ($argv)
+	echo $ras
+	set ppm = `echo $ras | sed s/ras/ppm/`
+	rastoppm $ras >! $ppm
+	if ($status == 0) echo $ppm >> $lis
+end
+#
+rm -f $fli
+ppm2fli -g $size $lis $fli
+#
+rm -rf `cat $lis` $lis
+#

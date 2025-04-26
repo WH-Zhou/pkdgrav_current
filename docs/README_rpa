@@ -1,0 +1,108 @@
+[this is an email sent to Charles 3/9/17 describing how to use rpa to
+identify reaccumulated fragments in a collisional disruption
+simulation]
+
+Hi Charles,
+
+If you run rpa without arguments, you'll see an extensive option list. 
+Don't panic!  Our first step will be to simply use the defaults and see 
+what happens.
+
+If you run "rpa FILE.ss", where "FILE.ss" is the final output of your 
+simulation, you will get most of what you need to get started. 
+Specifically, you'll see some info about the number of rubble piles, 
+2-particle groups (essentially dumbbells), and free single particles.  The 
+"color distribution" will only be meaningful if your particles have 
+different colors.  You will also see a bunch of files that get generated:
+
+rpa.out
+rpa_biggest.ss
+rpa_centers.bt
+rpa_centers.dd
+rpa_centers.oe
+rpa_groups.ss
+
+rpa.out contains summary information about the data (and if you run rpa on 
+more than one ss file at a time, there will be an entry in rpa.out for 
+each, so you can plot the time evolution of the system).  Unfortunately, 
+there's no documentation on the file contents -- instead, look at line 
+1119 in src/ss/rpa.c to see what's being output in each column, namely:
+
+Current time
+Maximum radial extent of the ENTIRE system
+Radial distance of center of mass of system from origin
+Speed of center of mass relative to origin
+Magnitude of spin of system
+Mass of largest remnant
+Speed of largest remnant
+Spin components (3) of largest remnant
+Effective spin and rotation index of largest remnant (Scheeres)
+Angular momentum magnitude and kinetic energy of largest remnant
+Largest remnant axis lengths (3: major, intermediate, minor)
+Density of largest remnant
+Number of free single particles
+Number of 2-particle bodies
+Number of rubble piles
+Mass in free particles
+Mass in 2-particle bodies
+Mass in rubble piles
+Velocity dispersion magnitude of free particles
+Velocity dispersion magnitude of 2-particle bodies
+Velocity dispersion magnitude of rubble piles
+Total mass accreting onto largest remnant
+Total mass orbiting largest remnant
+Total mass escaping largest remnent
+
+Phew!  All quantities are in pkdgrav units.  You will need to write your 
+own plotting script to visualize what you want, since rpa.sm will likely 
+not work for you. :)
+
+rpa_biggest.ss should be pretty obvious: it's what rpa thinks is the 
+largest remnant -- it puts all the particles belonging to the largest 
+remnant in a single ss file (and colors them red by default).  You can 
+immediately ssdraw that file (and optionally ssinfo or rpx, etc.) to see 
+what it looks like.  Always do this to make sure rpa did things sensibly.
+
+The rpa_centers files give data related to the locations, velocities,
+masses, bulk radii, and spins of all identified rubble piles.  The .bt
+file gives this information in the "box_tree" format, which you can
+convert to ss if you want via "bt2ss".  But it's not really intended
+to be treated as an ss file: rather, it gives you the data you need to
+identify the centers and motions of all the rubble piles.  The other
+extensions (.dd, .oe) we'll skip for now.  The format of bt files is
+given in the online pkdgrav tutorial document.
+
+rpa_groups.ss has the same data as your input file but recolored so
+you can see what rpa thinks are rubble piles.  Very useful for
+visualizing and checking.  Just ssdraw rpa_groups.ss, etc.
+
+Now, if you want more than just the largest remnant output as an ss
+file, you can use the rpa option "-b" with a number, e.g., "-b 5" will
+output the 5 largest remnants, numbered 0 through 4 I think (I forget
+actually, but it will be obvious).  If you'd rather these all be saved
+in one file, use "-o", but you'd probably only want to do that for
+visualization.
+
+If singles and/or doubles are cluttering the view, use "-1" and/or
+"-2" to suppress them.  Good for viz.
+
+If you find that rpa is having trouble identifying rubble piles, try
+adjusting the linking length via the "-l" option (that's an "ell" not
+a "one").  Experiment to see what works.
+
+If you don't want the output to be recolored, use "-d".
+
+I think those are the important options, and should get you started.
+
+Good luck!! :)
+
+D
+
+-- 
+Prof. Derek C. Richardson
+University of Maryland
+Department of Astronomy
+1112 PSC Bldg. 415
+College Park MD 20742 USA
+Tel: 301-405-8786 Fax: 301-314-9067
+Web: http://www.astro.umd.edu/~dcr/

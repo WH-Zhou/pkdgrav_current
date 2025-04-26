@@ -1,0 +1,43 @@
+VPATH = ../..
+TOP	= $(VPATH)/../..
+INCS = -I$(TOP)/include
+
+SRCS = $(shell cd ../.. && ls *.c)
+OBJS = $(SRCS:.c=.o)
+
+EXE	= pkdgrav
+BIN_DEST = $(TOP)/bin/$(OS)
+
+MDL	= $(VPATH)/../mdl/$(PKDGRAV_TYPE)
+MDLOBJ = $(MDL)/$(OS)/mdl.o
+
+CFLAGS += -I$(MDL) $(PKD_CFLAGS) $(PKD_AND_SS_CFLAGS)
+LDFLAGS += $(PKD_LDFLAGS)
+LDLIBS += $(PKD_LDLIBS)
+
+all: $(EXE)
+	@cp $(EXE) ../../../../bin/$(OS)/$(EXE).$(PKDGRAV_TYPE)
+
+$(EXE): $(OBJS) $(XOBJ)
+	$(CC) -o $(EXE) $(OBJS) $(XOBJ) $(MDLOBJ) $(LDFLAGS) $(LDLIBS)
+	@rm -f $(BIN_DEST)/$@
+	@cp $@ $(BIN_DEST)
+
+DEPDIR = .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+*.o: ../../Makefile ../../Makefile.in Makefile.recurse
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	$(CC) -c $(CFLAGS) $(DEPFLAGS) $(INCS) $(VPATH)/$*.c
+	$(POSTCOMPILE)
+	
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
+
+clean:
+	rm -rf ../$(OS)

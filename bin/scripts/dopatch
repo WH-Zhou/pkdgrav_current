@@ -1,0 +1,134 @@
+#!/bin/csh
+#
+alias patchic PUT_PATCHIC_PATH_HERE
+#
+@ auto_run = 1
+#
+# Choose the pkdgrav running mode...
+#
+alias runpkd './pkdgrav'			# null
+#alias runpkd './pkdgrav -sz 3'			# pthread
+#alias runpkd 'mpirun -np 4 ./pkdgrav'		# mpi (LAM mpi)
+#alias runpkd 'mpirun -p4pg mpi.htab ./pkdgrav'	# mpi (mpich)
+#
+@ use_mpikill = 0	# probably needed for mpich
+#
+@ num_out = 200		# total number of outputs over ENTIRE simulation
+@ num_log = 1000	# number of log outputs
+@ num_chk = 100		# number of checkpoint writes
+@ ns_init = 32		# value to use for nSmooth
+#
+set tmpl = patch.par.tmpl
+#
+if !(-e $tmpl) then
+	echo $tmpl not found
+	exit 1
+endif
+#
+echo Run directory is `pwd`
+set subpath = `awk '/SubPath/{print $3}' $tmpl`
+if ($?PTOOLS_DATA_PATH) then
+	set runpath = $PTOOLS_DATA_PATH/$subpath
+else
+	set runpath = .
+endif
+rm -f .dopatch$$
+if (-d $runpath) then
+	touch $runpath/.dopatch$$
+endif
+if !(-e .dopatch$$) then
+	echo SubPath in $tmpl does not match current directory
+	exit 1
+endif
+rm -f .dopatch$$
+unset runpath
+unset subpath
+#
+patchic -f
+if ($status) exit 1
+#
+set ns = `awk '/Number of steps/{print $4}' patchic.log`
+if ($num_out) then
+	@ io = $ns / $num_out
+	if ($io == 0) @ io = 1
+else
+	@ io = 0
+endif
+if ($num_log) then
+	@ il = $ns / $num_log
+	if ($il == 0) @ il = 1
+else
+	@ il = 0
+endif
+if ($num_chk) then
+	@ ic = $ns / $num_chk
+	if ($ic == 0) @ ic = 1
+else
+	@ ic = 0
+endif
+#
+echo Initial nSmooth = $ns_init
+#
+set dt = `awk '/Timestep/{print $2}' patchic.log`
+set dm = `awk '/Central mass/{print $3}' patchic.log`
+set da = `awk '/Orbital distance/{print $3}' patchic.log`
+set dx = `awk '/Patch width/{print $3}' patchic.log`
+set dy = `awk '/Patch length/{print $3}' patchic.log`
+cat patch.par.tmpl |\
+	sed "s/NSTEPS/$ns/" |\
+	sed "s/DCENTMASS/$dm/" |\
+	sed "s/IOUT/$io/" |\
+	sed "s/ILOG/$il/" |\
+	sed "s/ICHECK/$ic/" |\
+	sed "s/DDELTA/$dt/" |\
+	sed "s/NSMOOTH/$ns_init/" |\
+	sed "s/DORBDIST/$da/" |\
+	sed "s/DXPERIOD/$dx/" |\
+	sed "s/DYPERIOD/$dy/" >! patch.par
+endif
+#
+@ ns = $ns_init
+@ old_ns = $ns
+#
+while (1)
+	runpkd +overwrite +rejects patch.par
+	@ rv = $status
+	if (-e rejects.out) then
+		if ($use_mpikill && -e mpi.htab) mpikill
+		patchic -r
+		if ($status) exit 1
+		rm -f rejects.out
+		@ old_ns = 0
+	else if ($rv == 0) then
+		if ($old_ns) then
+			patchic -a -r	# to adjust com pos & vel
+			if ($status) exit 1
+			sed /nSmooth/s/$ns/$ns_init/ patch.par >! .dopatch$$
+			mv -f .dopatch$$ patch.par
+			echo nSmooth reset to $ns_init
+			if !(-e ss.00000) ln -s patchic.ss ss.00000
+			echo ss.00000 linked to patchic.ss
+			if ($auto_run) then
+				echo Running...
+				runpkd +overwrite -rejects patch.par >&! output
+				exit $status
+			else
+				echo Ready to run
+				exit 0
+			endif
+		else
+			@ old_ns = $ns
+			@ ns *= 2
+			echo New nSmooth = $ns
+			if ($ns > 1000) then
+				echo nSmooth too large\!
+				exit 1
+			endif
+			sed /nSmooth/s/$old_ns/$ns/ patch.par >! .dopatch$$
+			mv -f .dopatch$$ patch.par
+		endif
+	else
+		exit $rv
+	endif
+end
+#

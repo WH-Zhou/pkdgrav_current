@@ -1,0 +1,13 @@
+Some of the Python scripts in bin/scripts use the subprocess module, which
+in turn may access the system Bourne shell.  In some versions of Ubuntu,
+/bin/sh is actually a soft link to /bin/dash and results in a script error
+"sh: Syntax error: Bad fd number".  A workaround is to see if "ls -l /bin/sh"
+is a softlink to /bin/dash, and if so change it to /bin/bash:
+
+sudo mv /bin/sh /bin/sh.orig                                                    
+sudo ln -s /bin/bash /bin/sh
+
+(An alternative may be to use "dpkg-reconfigure dash" instead, and choose no
+when asked if you want dash as your default system shell.)
+
+From https://stackoverflow.com/questions/15809060/sh-syntax-error-bad-fd-number

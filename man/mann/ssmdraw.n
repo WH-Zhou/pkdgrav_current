@@ -1,0 +1,25 @@
+.TH ssmdraw n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmdraw \- Runs \fBssdraw\fP on supplied ss files.
+.SH SYNOPSIS
+ssmdraw [-f \fIframes-file\fP] \fIss-file\fP [\fIss-file\fP ...]
+.SH DESCRIPTION
+This script runs \fBssdraw\fP on its arguments.  The \fBssdraw\fP
+parameter file to use is extracted from the frames file header (see
+\fBssminit\fP).  Output will either be Sun rasterfiles or POV-Ray
+scripts, depending on the value of "Particle shape" in the
+\fBssdraw\fP parameter file.
+.SH OPTIONS
+.IP "-f \fIfile\fP"
+Read animation parameters from \fIfile\fP (default frames.ssm).
+.SH SEE ALSO
+ssdraw(n), ssminit(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

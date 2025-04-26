@@ -1,0 +1,108 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+
+\huge{\pkd\ \code{ssio.py} Documentation}\\
+\bigskip\bigskip
+\Large{Last Update 7/17/19}\\
+\bigskip\bigskip
+\large{Created by Ron Ballouz 11/25/15}\\
+
+\end{flushleft}
+
+\section{OVERVIEW}
+
+The \code{ssio.py} library contains the Python
+functions \code{read\_SS()} and \code{write\_SS()} that allow the
+reading and writing of \code{ss} files in a Python script.  In order
+to work correctly, \code{ssio.py} requires Python 3 and the NumPy
+library.
+
+\section{Setup}
+In order to use the functions in the \code{ssio.py} library, the file
+(located in the \pkd\ codebase under \code{bin/scripts}) must be
+copied to a local directory, or the path to the file can be placed in
+the \code{PYTHONPATH} environment variable.  For example, in bash:
+\begin{verbatim}
+export PYTHONPATH=/path_to_pkdgrav/bin/scripts
+\end{verbatim}
+where \code{path\_to\_pkdgrav} is the location of the \pkd\ codebase.
+Afterwards, one can import the \code{ssio.py} library from any Python
+script via:
+\begin{verbatim}
+import ssio
+\end{verbatim}
+
+\section{\code{ssio.read\_SS()}}
+The \code{read\_SS()} function allows a reduced or full \pkd\ output
+file to be read in by a Python script.  \code{read\_SS()} returns
+either a $14 \times N$ NumPy array (where $N$ is the number of
+particles) of the \pkd\ data file, or, if the optional
+argument \code{unpack=True}, a list of individual NumPy arrays.  The
+function can optionally return the header information as well.  As an
+argument, \code{read\_SS()} requires the input file name, and
+optionally takes a string to specify whether the header information of
+the file should also be returned.  The returned header is a list of
+three values: the timestamp, the number of particles, and the ``magic
+number'' ($-1$ for full output and $-10101$ for reduced).  For example:
+\begin{verbatim}
+import ssio
+
+#to get the header information and the data
+header, data = ssio.read_SS('my_file.ss', 'yes')
+#note this second argument should be any string that is not 'no'
+
+#to just get the data
+data = ssio.read_SS('my_file.ss')
+\end{verbatim}
+If an error is encountered during reading, the \code{ssio.ReadError}
+exception is raised, with an explanatory message available.  To handle
+the exception cleanly and print the error message, you could do the
+following:
+\begin{verbatim}
+import ssio
+
+try:
+    data = ssio.read_SS('my_file.ss')
+except ssio.ReadError as msg:
+    print('Read error:', msg)
+    exit(1)
+\end{verbatim}
+The data order is as follows: order number (integers from 0 to $N -
+1$); original order number (or original index); mass (doubles); radius
+(doubles); position (as a vector of doubles); velocity (doubles
+vector); spin (doubles vector); and color (integers).  Here is sample
+usage with \code{unpack=True}:
+\begin{verbatim}
+import ssio
+header, ord, oord, mass, rad, pos, vel, spin, c = \
+    ssio.read_SS('my_file.ss', 'yes', unpack=True)
+print(pos[:, 0])  # vector position of first particle
+\end{verbatim}
+
+\section{\code{write\_SS()}}
+The \code{write\_SS()} function allows the user to write a $14 \times
+N$ NumPy array to a reduced or full output \pkd\ file.  As
+arguments, \code{write\_SS()} takes a NumPy array and the name of the
+output file.  Optionally, \code{write\_SS()} can accept a time to
+write to the output file's header.  \code{write\_SS()} will write to a
+reduced output file if the filename given has a ``.r'' extension.  For
+example, to read in a file (specified as a command-line argument),
+change all the particle colors to red, and then save to a reduced
+output file:
+\begin{verbatim}
+import sys
+import ssio
+
+file = sys.argv[1]
+header, py_data = read_SS(file, 'yes')
+py_data[13, :] = 2
+ssio.write_SS(py_data, file + '_recolored.r', time = header[0])
+\end{verbatim}
+If an error is encountered during writing, the \code{ssio.WriteError}
+exception is raised, with an explanatory message available,
+analogously to exception handling for \code{read\_SS()}.
+
+\end{document}

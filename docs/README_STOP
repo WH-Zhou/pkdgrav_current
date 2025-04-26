@@ -1,0 +1,30 @@
+While running, pkdgrav looks to see whether a file called "STOP" is
+present in the run directory.  If so, and if the file is empty, a
+"clean" stop will occur, shutting down all threads and writing an
+output at the current step, and, if applicable a checkpoint (or
+equivalent).
+
+You can also provide a specific instruction to pkdgrav via the STOP
+file.  The following commands are recognized if present in the file
+(not case sensitive):
+
+none   -- do nothing
+stop   -- stop the run (same as giving an empty STOP file)
+status -- reports current step, sim time, and particle number
+check  -- writes a checkpoint
+output -- writes output for the current step
+
+Once processed, the STOP file is automatically deleted.
+
+HINTS:
+
+1. To quickly and cleanly stop a pkdgrav run, just type "touch STOP".
+
+2. Otherwise to issue one of the above commands, just type, "echo
+   COMMAND > STOP", where "COMMAND" is one of the valid commands.
+
+DEVELOPERS:
+
+The functionality is implemented in master.c:msrCheckForInterrupt(),
+which is called during the top-level simulation loop in main.c:main().
+The interrupts are defined in master.h (search for "interrupt").

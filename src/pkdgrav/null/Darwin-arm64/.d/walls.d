@@ -1,0 +1,1 @@
+walls.o: ../../walls.c

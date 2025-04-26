@@ -1,0 +1,54 @@
+WARNING: iOutcomes ignored with soft sphere DEM.
+PKDGRAV running on 20 processors.
+pstRandSeedGenerator(): processor 0 random seed = 17992544079663226916
+pstRandSeedGenerator(): processor 16 random seed = 4553392505895029961
+pstRandSeedGenerator(): processor 8 random seed = 17409278713400828734
+pstRandSeedGenerator(): processor 4 random seed = 7631500126792933889
+pstRandSeedGenerator(): processor 12 random seed = 10559139758470390990
+pstRandSeedGenerator(): processor 2 random seed = 11422453870526492053
+pstRandSeedGenerator(): processor 18 random seed = 11388970188146187736
+pstRandSeedGenerator(): processor 10 random seed = 4791084146331425711
+pstRandSeedGenerator(): processor 6 random seed = 15061705643973588830
+pstRandSeedGenerator(): processor 14 random seed = 13439051501322495269
+pstRandSeedGenerator(): processor 1 random seed = 2761748830105295980
+pstRandSeedGenerator(): processor 17 random seed = 15992793419587996250
+pstRandSeedGenerator(): processor 9 random seed = 1098647657643674774
+pstRandSeedGenerator(): processor 5 random seed = 15723608736335647197
+pstRandSeedGenerator(): processor 13 random seed = 14806705119566513481
+pstRandSeedGenerator(): processor 3 random seed = 11054745880190229533
+pstRandSeedGenerator(): processor 19 random seed = 15653760270256124818
+pstRandSeedGenerator(): processor 11 random seed = 14029872196627350013
+pstRandSeedGenerator(): processor 7 random seed = 3628338547509906039
+pstRandSeedGenerator(): processor 15 random seed = 1712491214690651761
+NOTE: Times reported as "Wallclock" are in fact CPU times.
+WARNING: No floating point exception trapping enabled
+NOTE: MAX_NUM_OVERLAPS_PER_PARTICLE = 12
+==> .dem head size = 24, data size = 1104 per particle
+DEM_FIXED_BALL: Particles should be in INCREASING radius order.
+Input file...N=996,Time=0
+Simulation to Time:0.02
+Initializing DEM parameters...
+DEM_FIXED_BALL: set to maximum radius: 6.6845871e-10
+(use caution if any particle is a LOT bigger than the others)
+DEM initialization complete, time = 0.020714 sec.
+CnPreFac and CtPreFac calculated on pid 3
+CnPreFac and CtPreFac calculated on pid 1
+CnPreFac and CtPreFac calculated on pid 13
+CnPreFac and CtPreFac calculated on pid 9
+CnPreFac and CtPreFac calculated on pid 19
+CnPreFac and CtPreFac calculated on pid 2
+CnPreFac and CtPreFac calculated on pid 18
+CnPreFac and CtPreFac calculated on pid 15
+CnPreFac and CtPreFac calculated on pid 5
+CnPreFac and CtPreFac calculated on pid 0
+CnPreFac and CtPreFac calculated on pid 10
+CnPreFac and CtPreFac calculated on pid 7
+CnPreFac and CtPreFac calculated on pid 11
+CnPreFac and CtPreFac calculated on pid 8
+CnPreFac and CtPreFac calculated on pid 14
+CnPreFac and CtPreFac calculated on pid 16
+CnPreFac and CtPreFac calculated on pid 4
+CnPreFac and CtPreFac calculated on pid 17
+CnPreFac and CtPreFac calculated on pid 12
+CnPreFac and CtPreFac calculated on pid 6
+slurmstepd: error: *** JOB 49861279 ON suv001 CANCELLED AT 2024-01-11T18:09:05 ***

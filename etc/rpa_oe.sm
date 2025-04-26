@@ -1,0 +1,122 @@
+define ps 0 # device: 0=X11, 1=postencap
+define title "Osculating Elements"
+define n_bins 30
+define data_file "rpa_centers.oe"
+define TeX_strings 1
+define verbose 0
+#
+if ($ps) {
+	define use_cursor 0
+	define yellow magenta
+	lweight 3
+} else {
+	define yellow yellow
+}
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+macro plot 3 {
+	vecminmax $1 vmin vmax
+	define w (($vmax - $vmin)/$n_bins)
+	get_hist $1 hx hy $vmin $vmax $w
+	limits hx hy
+	ticksize 0 0 0 0
+	box
+	xlabel $3
+	ylabel n
+	ctype $2
+	barhist 100 hx hy
+	ctype default
+}
+#
+macro log_plot 3 {
+	set lv = lg($1)
+	vecminmax lv lvmin lvmax
+	define w (($lvmax - $lvmin)/$n_bins)
+	get_hist lv hx hy $lvmin $lvmax $w
+	set x = hx if (hy > 0)
+	set y = hy if (hy > 0)
+	set ly = lg(y)
+	limits x ly
+	ticksize -1 10 -1 10
+	box
+	xlabel $3
+	ylabel n
+	ctype $2
+	points x ly
+	connect x ly
+	ctype default
+}
+#
+if ($ps == 0) {dev x11 -geom 800x800+0+0}
+#
+expand 1.001
+ptype 20 3
+#
+data $data_file
+#
+read {mr 2 sma 3 ecc 4 peri 5}
+#
+# Quick analysis...
+#
+define n 0
+define m 0
+do i=0,dimen(mr)-1 {
+	if (sma[$i] < 0) {
+		define n ($n + 1)
+		define m ($m + mr[$i])
+	}
+}
+echo Number of groups escaping = $n ($($n/dimen(mr)*100)%)
+echo Mass of groups escaping = $m M_max
+#
+if ($ps) {dev postencap rpa_oe.ps}
+#
+window 2 2 1 2
+set bound = sma if (sma > 0)
+log_plot bound yellow "Semimajor Axis (R_{max})"
+#
+window 2 2 2 2
+set bound = ecc if (sma > 0)
+plot bound blue "Eccentricity"
+#
+window 2 2 1 1
+set bound = peri if (sma > 0)
+plot bound red "Periapse (R_{max} + R_i)"
+#
+window 2 2 2 1
+set x = sma if (sma > 0)
+set y = ecc if (sma > 0)
+set lx = lg(x)
+set ly = lg(y)
+limits lx ly
+ticksize -1 10 -1 1
+box
+xlabel Semimajor Axis (R_{max})
+ylabel Eccentricity
+ctype green
+points lx ly
+ctype default
+#
+window 1 1 1 1
+limits 0 1 0 1
+ticksize 0 0 0 0
+relocate 0.5 1.03
+putlabel 5 $title (bound only)
+pause
+quit
+#

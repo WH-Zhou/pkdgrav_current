@@ -1,0 +1,82 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+
+\huge{\code{export\_strip.py} Documentation}\\
+\bigskip\bigskip
+\Large{
+Written 6/15/20 by Derek C. Richardson (\texttt{dcr@umd.edu})\\
+\bigskip
+Last Update 6/25/20 by Derek C. Richardson (\texttt{dcr@umd.edu})
+} % \Large
+
+\end{flushleft}
+
+\tableofcontents
+
+\section{OVERVIEW}
+
+The \code{export\_strip.py} utility simplifies preparation of the
+\code{pkdgrav} codebase for export by filtering out macro-defined code
+blocks from the source. For example, running the script with the
+argument \code{DEM} strips all elements of the soft-sphere
+implementation. The utility creates a directory (named \code{export}
+by default) containing the stripped code ready for packaging into a
+tar ball or zip file. Note the code must be run at the top of the
+codebase, which can be the local \code{git} working directory or
+either a clone of the remote repository or a published release
+(version 2.5.0 or later).
+
+Any valid macro(s) may be provided in the argument list (use
+\code{export\_strip.py --help} for a full list of options). Normally
+however these would be macros specified in \code{Makefile.in} as
+compilation options, \eg \code{WALLS}, \code{AGGS}, \code{DEM}, etc.
+
+Certain macros are automatically stripped. These include \code{NUMREC}
+(the \textit{Numerical Recipes} routines, which cannot be distributed)
+along with older or more experimental macros that are not meant to be
+included in any distribution.
+
+When the utility has completed its operation, a message with further
+instructions is displayed, as some final steps must be completed by
+hard, such as editing \code{Makefile.in} to remove the stripped
+macros.
+
+It is intended that \code{export\_strip.py} be used only by code
+developers. The script and this documentation are \emph{not} included
+in the export.
+
+\section{OPTIONS}
+
+\begin{tabular}{ll}
+\code{-h} or \code{--help} & Show usage message. \\
+\code{-e EXPORT} or \code{--export EXPORT} & Use EXPORT as export
+  directory (default \code{export}). \\
+\code{-v} or \code{--verbose} & Display more verbose output.
+\end{tabular}
+
+\section{KNOWN ISSUES}
+
+\begin{enumerate}
+  \item The \code{export\_strip.py} utility was introduced at Release
+    2.5.0 and will not work completely for prior releases (since
+    certain code modifications were required to make the script work
+    well).
+\item Any new code macros added subsequently may require an update to
+  \code{export\_strip.py} in each instance if it is desired to strip
+  out the new code for export.
+\item Sometimes, particularly when more than one macro test occurs at
+  once (\eg the conditional ``\code{if defined(WALLS) ||
+    defined(AGGS)}''), references to a macro may remain, but all code
+  specific \emph{only} to that macro will still be stripped.
+\item All soft links get converted to regular files on export, causing
+  some minor duplication.
+\item The script can only do so much. For proper public distribution,
+  items like README files will need to be modified or added by hand,
+  along with other specific instructions that are not normally part of
+  the codebase.
+\end{enumerate}
+
+\end{document}

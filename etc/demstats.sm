@@ -1,0 +1,309 @@
+define do_cumul 1     # cumulative stats: 0 = no, 1 = yes
+define obinmin (-6.0) # overlap bin lower limit
+define obinmax (0.0)  # overlap bin upper limit
+define ofmax (1.0)    # overlap max bin occupancy fraction to plot
+define olog 1         # overlap plot: 0 = linear y, 1 = logarithmic y
+define abinmin (-1.0) # cos(alpha) bin lower limit
+define abinmax (1.0)  # cos(alpha) bin upper limit
+define afmax (1.0)    # cos(alpha) max bin occupancy fraction to plot
+define alog 1         # cos(alpha) plot: 0 = linear y, 1 = logarithmic y
+define sbinmin (-5.0) # S/R bin lower limit
+define sbinmax (1.0)  # S/R bin upper limit
+define sfmax (1.0)    # S/R max bin occupancy fraction to plot
+define slog 1         # S/R plot: 0 = linear y, 1 = logarithmic y
+
+# NOTE: the file format is given in the file header
+data ss.demstats
+
+# read time
+lines 11 11
+read {v 1}
+define time (v[0]*365.25*24*3600/2/3.141592654) # convert to seconds
+
+# read number of particles
+lines 12 12
+read {v 1}
+define N (v[0])
+if ($N < 1) {
+	echo *** No particles found!
+	quit
+}
+
+# read global minimum distance and maximum overlap speed
+lines 13 13
+read {v 1}
+define dmin (v[0]*1.496e11) # convert to meters
+read {v 2}
+define ovmax (v[0]*2.979e6) # convert to cm/s
+
+# read number of overlap histogram bins
+lines 14 14
+read {v 1}
+
+# generate overlap histogram
+#device blackgif demstats_ohist.gif
+device postencap demstats_ohist.eps
+expand 1.001
+define nbin (v[0])
+define width (($obinmax - $obinmin)/$nbin)
+set x = $obinmin,$obinmax - $width,$width
+set x = x + $width/2
+lines 15 114
+read {v 1}
+if ($do_cumul) {read {c 2}}
+define novlp (sum(v))
+if ($novlp == 0) {echo *** No overlaps detected!}
+set v = v/$N # normalize
+if ($olog) {
+	ticksize 0 0 -1 10
+	if ($novlp > 0) {
+		set xz = x if (v > 0)
+		set vz = v if (v > 0)
+		set lvz = lg(vz)
+	}
+	define vmin (-lg($N)) # N here, not novlp, to keep fixed vertical scale
+	define vmax (lg($ofmax))
+} else {
+	define vmin (-0.05*$ofmax)
+	define vmax (1.05*$ofmax)
+	}
+limits x $vmin $vmax
+if ($do_cumul) {
+	window 1 -2 1 2
+	box 0 2 0 0
+} else {
+	box
+}
+if (!$do_cumul) {xlabel log(Overlap Fraction)}
+ylabel Bin Occupancy Fraction
+if ($novlp > 0) {
+	if ($olog) {
+		histogram xz lvz
+	} else {
+		barhist 100 x v # barhist doesn't like logarithmic histograms
+	}
+}
+if ($do_cumul) {
+	window 1 -2 1 1
+	define novlp (sum(c))
+	if ($novlp > 0) {
+		if ($olog) {
+			set xz = x if (c > 0)
+			set vz = c if (c > 0)
+			set lvz = lg(vz)
+			limits x lvz
+		} else {
+			limits x c
+		}
+	} else {
+		if ($olog) {
+			limits x -0.1 0.1
+		} else {
+			limits x -0.05 1.05
+		}
+	}
+	box
+	xlabel log(Overlap Fraction)
+	ylabel Cumulative N
+	if ($novlp > 0) {
+		if ($olog) {
+			histogram xz lvz
+		} else {
+			barhist 100 x c
+		}
+	}
+}
+window 1 1 1 1
+ticksize 0 0 0 0
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 Overlap Fraction Histogram
+relocate 0.95 0.85
+putlabel 4 Time: $(sprintf('%6.1f',float($time))) sec # float() needed if time = 0 (treated as integer, generates warning)
+relocate 0.95 0.90
+putlabel 4 Min. Sep.: $(sprintf('%9.3e',$dmin)) m
+relocate 0.95 0.95
+putlabel 4 Max. Overlap Speed: $(sprintf('%7.1e',float($ovmax))) cm/s
+hardcopy
+
+# read number of cos(alpha) histogram bins
+lines 115 115
+read {v 1}
+
+# generate cos(alpha) histogram
+#device blackgif demstats_ahist.gif
+device postencap demstats_ahist.eps
+expand 1.001
+define nbin (v[0])
+define width (($abinmax - $abinmin)/$nbin)
+set x = $abinmin,$abinmax - $width,$width
+set x = x + $width/2 # bin centers in the middle of each interval
+lines 116 215
+read {v 1}
+if ($do_cumul) {read {c 2}}
+define nalpha (sum(v))
+# following could happen if all particle speeds are zero, for example...
+if ($nalpha == 0) {echo *** No cos(alpha) data found!}
+set v = v/$N
+if ($alog) {
+	ticksize 0 0 -1 10
+	if ($nalpha > 0) {
+		set xz = x if (v > 0)
+		set vz = v if (v > 0)
+		set lvz = lg(vz)
+	}
+	define vmin (-lg($N))
+	define vmax (lg($afmax))
+} else {
+	define vmin (-0.05*$afmax)
+	define vmax (1.05*$afmax)
+}
+limits x $vmin $vmax
+if ($do_cumul) {
+	window 1 -2 1 2
+	box 0 2 0 0
+} else {
+	box
+}
+if (!$do_cumul) {xlabel cos(\alpha)}
+ylabel Bin Occupancy Fraction
+if ($nalpha > 0) {
+	if ($alog) {
+		histogram xz lvz
+	} else {
+		barhist 100 x v
+	}
+}
+if ($do_cumul) {
+	window 1 -2 1 1
+	define nalpha (sum(c))
+	if ($nalpha > 0) {
+		if ($alog) {
+			set xz = x if (c > 0)
+			set vz = c if (c > 0)
+			set lvz = lg(vz)
+			vecminmax lvz vmin vmax
+			define vmin (-0.1)
+			define vmax (1.05*$vmax)
+		} else {
+			vecminmax c vmin vmax
+			define vmin (-0.05*$vmax)
+			define vmax (1.05*$vmax)
+		}
+	} else {
+		if ($alog) {
+			define vmin (-0.1)
+			define vmax 0.1
+		} else {
+			define vmin (-0.05)
+			define vmax 1.05
+		}
+	}
+	limits x $vmin $vmax
+	box
+	xlabel cos(\alpha)
+	ylabel Cumulative N
+	if ($nalpha > 0) {
+		if ($alog) {
+			histogram xz lvz
+		} else {
+			barhist 100 x c
+		}
+	}
+}
+window 1 1 1 1
+ticksize 0 0 0 0
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 cos(\alpha) Parameter Histogram
+relocate 0.95 0.95
+putlabel 4 Time: $(sprintf('%6.1f',float($time))) sec
+hardcopy
+
+# read number of S/R histogram bins
+lines 216 216
+read {v 1}
+
+# generate S/R histogram
+#device blackgif demstats_shist.gif
+device postencap demstats_shist.eps
+expand 1.001
+define nbin (v[0])
+define width (($sbinmax - $sbinmin)/$nbin)
+set x = $sbinmin,$sbinmax - $width,$width
+set x = x + $width/2
+lines 217 316
+read {v 1}
+if ($do_cumul) {read {c 2}}
+define ns (sum(v))
+if ($ns == 0) {echo *** No S values detected!}
+set v = v/$N # normalize
+if ($slog) {
+	ticksize 0 0 -1 10
+	if ($ns > 0) {
+		set xz = x if (v > 0)
+		set vz = v if (v > 0)
+		set lvz = lg(vz)
+	}
+	define vmin (-lg($N)) # N here, not ns, to keep fixed vertical scale
+	define vmax (lg($sfmax))
+} else {
+	define vmin (-0.05*$sfmax)
+	define vmax (1.05*$sfmax)
+	}
+limits x $vmin $vmax
+if ($do_cumul) {
+	window 1 -2 1 2
+	box 0 2 0 0
+} else {
+	box
+}
+if (!$do_cumul) {xlabel log(S Vector Magnitude Normalized by Particle Radius (S/R))}
+ylabel Bin Occupancy Fraction
+if ($ns > 0) {
+	if ($slog) {
+		histogram xz lvz
+	} else {
+		barhist 100 x v
+	}
+}
+if ($do_cumul) {
+	window 1 -2 1 1
+	define ns (sum(c))
+	if ($ns > 0) {
+		if ($slog) {
+			set xz = x if (c > 0)
+			set vz = c if (c > 0)
+			set lvz = lg(vz)
+			limits x lvz
+		} else {
+			limits x c
+		}
+	} else {
+		if ($slog) {
+			limits x -0.1 0.1
+		} else {
+			limits x -0.05 1.05
+		}
+	}
+	box
+	xlabel log(S Vector Magnitude Normalized by Particle Radius (S/R))
+	ylabel Cumulative N
+	if ($ns > 0) {
+		if ($slog) {
+			histogram xz lvz
+		} else {
+			barhist 100 x c
+		}
+	}
+}
+window 1 1 1 1
+ticksize 0 0 0 0
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 S/R Histogram
+relocate 0.95 0.95
+putlabel 4 Time: $(sprintf('%6.1f',float($time))) sec
+hardcopy
+
+quit

@@ -1,0 +1,28 @@
+8/3/18 -- DCR
+=============
+
+This version of the code provides a mechanism in Makefile.in to select
+between Numerical Recipes (NR) and the GNU Scientific Library (GSL)
+when compiling.  NR is *not* publicly distributable, so any version of
+the code containing NR routines cannot be made available to the
+general public.  GSL on the other hand is distributed under the terms
+of the GNU Public License (version 3 or later), so any version of the
+code containing GSL routines must be released under the same license
+in order to be made available to the general public.
+
+GPL Version 3 is available here:
+
+https://www.gnu.org/licenses/
+
+The procedure for releasing a project under the GPL is here:
+
+https://www.gnu.org/licenses/gpl-howto.html
+
+(This includes getting a copyright disclaimer from U Maryland.)
+
+Ultimately the intent is to make the GSL version of the code publicly
+available, so the above procedure will need to be followed before that
+happens.
+
+Note the code documentation should probably carry the GNU Free
+Documentation License as well (available at the licenses link above).

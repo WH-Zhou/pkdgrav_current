@@ -1,0 +1,41 @@
+.TH ssmrecord n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmconvert \- Converts between file formats.
+.SH SYNOPSIS
+ssmconvert [-f \fIframes-file\fP] [-i input-format ] [ -o output-format ] [ -x ] file [file ...]
+.SH DESCRIPTION
+This script converts one or more image files of a supported format to
+another supported format.  The supported formats are gif, jpg, png,
+pov, ppm, ras, tga, and xwd (the pov format, which is POV-Ray source,
+cannot be used as an output format).  See \fBssminit\fP for more
+discussion about image types.  The \fBssmdraw\fP script can be used to
+generate pov output.  The input files need not be of the same format,
+unless the -i flag is used.  If the -i flag is not specified, the
+filename extension of each image will be used to determine the format.
+If no output format is specified, the image type specified with
+\fBssminit\fP in the frames-file will be used.  Output filenames will
+have the extension corresponding to the output format.  For the
+conversion to be successful, the NetPBM conversion utilities and/or
+the JPEG conversion utilities from the Independent JPEG Group (djpeg
+and cjpeg) and/or povray and/or rasttoppm from ss_core must be in the
+search path.
+.SH OPTIONS
+.IP "-f \fIfile\fP"
+Use \fIfile\fP to determine input and/or output formats (default frames.ssm).
+.IP "-i \fIformat\fP"
+Assume \fIformat\fP as the input image format.
+.IP "-o \fIformat\fP"
+Use \fIformat\fP as the output image format.
+.IP "-x"
+Expunge all input and intermediary files after conversion.
+.SH SEE ALSO
+ssmdraw(n), ssminit(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

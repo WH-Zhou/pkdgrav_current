@@ -1,0 +1,1326 @@
+define ps 0			# device: 0=X11, 1=postencap
+define color 1			# color toggle
+define use_cursor 0		# cursor toggle for FFT plots
+define fast 0			# fast toggle for ae/ai-plots
+define use_logn 0		# toggle for logarithmic axes in N
+define use_logt 0		# toggle for logarithmic axes in t
+define use_logm 0		# toggle for logarithmic axes in m
+define logn_lim 3		# force log axes if > n decades in N
+define logt_lim 3		# force log axes if > n decades in t
+define logm_lim 2		# force log axes if > n decades in m
+define use_grid 1		# toggle for grid drawing
+define qQ_plot 1		# toggle for plotting q-Q curves from max mass
+define n_abins 100		# no. bins for semi-major axis histogram
+define n_ebins 50		#  "   "    "   eccentricity       "
+define n_ibins 50		#  "   "    "    inclination       "
+define n_wbins 30		#  "   "    "  spin magnitude      "
+define n_wzbins 30		#  "   "    "      z-spin          "
+define big -100			# % bodies (biggest first) for ae/ai-plots
+				# (or absolute number if negative)
+define skip 1			# plot every nth point if using color_points
+define n_mark 5			# mark N most massive (0 disables)
+define rh_scale 5		# draw lines N-Hill-radii long for marked
+#
+define precision 1e-16		# 1e-8 for floats, 1e-16 for doubles
+#
+define data_file "ssa.out"	# main data file
+define sss_snap "ssa.sss"	# statistics file
+define abin_snap "ssa.abin"	# semi-major axis bin file
+define mbin_snap "ssa.mbin"	# mass bin file
+define log_file "ss.log"	# log file
+#
+define r_scale 1.0		# scaling for ae/ai-plots
+#
+define Mc xxx			# central mass
+define N0 xxx			# initial number of particles
+define mass xxx			# total planetesimal mass in Earth masses
+define rho xxx			# planetesimal mass density (in g/cc)
+define radius xxx		# planetesimal radius (in AU, or km if -ve)
+define f xxx			# planetesimal radius scaling
+define a_min0 xxx		# initial inner orbital radius
+define a_max0 xxx		# initial outer orbital radius
+define log_int xxx		# ss.log output interval (from pkd.par)
+define jup_is_seed xxx		# toggle if "Jupiter" is really a seed mass
+define r_is_softening xxx	# toggle to plot softening radius
+#
+define pi 3.141592654
+define G 6.672e-11		# Gravitational constant (mks units)
+define AU 1.4959787e11		# Astronomical unit (m)
+define Ms 1.9891e30		# Solar mass (kg)
+define Me 5.9742e24		# Earth mass (kg)
+#
+if ($N0 == 0) { # initial planetesimal mass & size (in solar masses)
+	define m0 0
+	define r0 0
+	define ve0 0
+} else {
+	define m0 ($mass*($Me/$Ms)/$N0)
+	if ($radius < 0) {define radius (-$radius*1000/$AU)}
+	if ($rho == 0) {define rho (0.001*$m0*$Ms/(4/3*$pi*($radius*$AU)**3))}
+	define r0 ($f*(($m0*$Ms/(4/3*$pi*$rho*1000))**(1/3))/$AU)
+	define ve0 (sqrt(2*$m0/$r0))
+}
+#
+define spin_max_pve (sqrt($pi*$rho*1000*$G/3)*86400/$pi) # revs/day
+define spin_max_nve (- $spin_max_pve)
+#
+define planetesimal 3		# color tag of planetesimal particles
+define jupiter 2		# ditto for Jupiter
+#
+define TeX_strings 1
+define verbose 0
+#
+if ($ps) {
+	define use_cursor 0
+	define yellow magenta
+	lweight 3
+} else {
+	define yellow yellow
+}
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+macro draw_grid {
+	if ($color) {ctype cyan} # override color flag
+	ltype 1
+	grid
+	ltype 0
+	if ($color) {ctype default}
+}
+#
+macro get_sym_limits 3 { # vector min max (min = -max)
+	set _a = abs($1)
+	if (dimen(_a) == 0) {return}
+	vecminmax _a _v1 _v2
+	define $2 (- $_v2)
+	define $3 $_v2
+	foreach _v (_a _v1 _v2) {delete $_v}
+}
+#
+macro new_limits 15 { # x-var sym-flag y-var1 [ y-var2 [ y-var3 ] ]
+	if ($2) {
+		set _a1 = abs($3)
+		if ($?4) {set _a2 = abs($4)}
+		if ($?5) {set _a3 = abs($5)}
+	} else {
+		set _a1 = $3
+		if ($?4) {set _a2 = $4}
+		if ($?5) {set _a3 = $5}
+	}
+	set _amin = _a1
+	set _amax = _a1
+	if ($?4) {
+		if (!$2) {set _amin = (_a1 < _a2 ? _a1 : _a2)}
+		set _amax = (_a1 > _a2 ? _a1 : _a2)
+	}
+	if ($?5) {
+		if (!$2) {set _amin = (_amin < _a3 ? _amin : _a3)}
+		set _amax = (_amax > _a3 ? _amax : _a3)
+	}
+	if ($2) {
+		set _a = _amax
+	} else {
+		set _a = _amin concat _amax
+	}	
+	if (dimen(_a) == 0) {return}
+	vecminmax _a vmin vmax
+	if ($2) {
+		define _dv (2*$vmax)
+	} else {
+		define _dv ($vmax - $vmin)
+	}
+	define vmax ($vmax + 0.05*$_dv)
+	if ($2) {
+		define vmin (- $vmax)
+	} else {
+		define vmin ($vmin - 0.05*$_dv)
+	}
+	if ($vmin == $vmax) {
+		define vmin ($vmin - 1)
+		define vmax ($vmax + 1)
+	}
+	limits $1 $vmin $vmax
+	foreach _v (_a1 _amin _amax _a _dv) {delete $_v}
+	if ($?4) {delete _a2}
+	if ($?5) {delete _a3}
+}
+#
+macro hist_limits 14 { # x-var n-bins [ x-min [ x-max ] ]
+	# note: n-bins < 0 ==> integer bins
+	if ($?3) {
+		define vmin ($3)
+		if ($?4) {
+			define vmax ($4)
+		} else {
+			vecminmax $1 _dum vmax
+			delete _dum
+		}
+	} else {
+		vecminmax $1 vmin vmax
+	}
+	if ($2 > 0) {
+		define w (($vmax - $vmin)/$2)
+	} else {
+		define w (- $2)
+	}
+	set b = $vmin,$vmax,$w
+	set h = histogram($1:b)
+	vecminmax h vmin vmax
+	define vmin (- 0.05*$vmax)
+	define vmax (1.05*$vmax)
+	limits b $vmin $vmax
+}
+#
+macro wlsq 5 { # x y e x2 y2 (weighted lsq)
+	set _w = 1/($3*$3)	# weights (1 over uncertainty squared)
+	set _S = sum(_w)
+	set _Sx = sum($1*_w)
+	set _Sy = sum($2*_w)
+	set _Sxx = sum($1*$1*_w)
+	set _Sxy = sum($1*$2*_w)
+	set _D = _S*_Sxx - _Sx*_Sx
+	define a ((_S*_Sxy - _Sx*_Sy)/_D)
+	define b ((_Sxx*_Sy - _Sx*_Sxy)/_D)
+	define da (sqrt(_S/_D))
+	define db (sqrt(_Sxx/_D))
+	set $5 = $a*$4 + $b
+	foreach _v (_w _S _Sx _Sy _Sxx _Sxy _D) {delete $_v}
+}
+#
+macro plot_color_point 4 {
+	define _m ($1)
+	define _r ($2)
+	define _x0 ($3)
+	define _y0 ($4)
+	if ($_m != $_old_m) {
+		define _c (3 + ((int($_m + 0.5) - 1) % 7))
+		if ($_c == 9) {define _c 0} # default color
+		expand $_r
+		ctype $_c
+		define _old_m ($_m)
+	}
+	relocate $_x0 $_y0
+	dot
+}
+#
+macro color_points 4 { # m-var r-var x-var y-var
+	define _old_m 0
+	do _i = dimen($1) - 1,$n_mark,-$skip { # smallest first
+		plot_color_point $1[$_i] $2[$_i] $3[$_i] $4[$_i]
+	}
+	if ($n_mark > 0) {
+		ptype 20 3
+		set dimen(_big_m) = $n_mark
+		set dimen(_big_x) = $n_mark
+		set dimen(_big_y) = $n_mark
+		do _i = 0, $n_mark - 1 {
+			plot_color_point $1[$_i] $2[$_i] $3[$_i] $4[$_i]
+			set _big_m[$_i] = $_m
+			set _big_x[$_i] = $_x0
+			set _big_y[$_i] = $_y0
+		}
+		ctype $yellow
+		if ($rh_scale) {
+			set _rh = $rh_scale*_big_x*(2*_big_m*$m0/(3*$Mc))**(1/3)
+			errorbar _big_x _big_y _rh 1
+			errorbar _big_x _big_y _rh 3
+			delete _rh
+		}
+		foreach _v (_rb _big_y _big_x _big_m) {delete $_v}
+	}
+	foreach _v (_c _m _x0 _y0 _i _old_m) {delete $_v}
+}
+#
+macro int_xticks 1 { # x-var
+	vecminmax $1 vmin vmax
+	if ($vmin == 1) {
+		define _bt (int($vmax/5) + 1)
+		ticksize 1 $_bt 0 0
+		delete _bt
+	}
+}
+#
+macro int_yticks 1 { # y-var
+	vecminmax $1 vmin vmax
+	if ($vmin == 1) {
+		define _bt (int($vmax/5) + 1)
+		ticksize 0 0 1 $_bt
+		delete _bt
+	}
+}
+#
+macro x_fiducial 3 { # x-var y-pos color
+	vecminmax $1 xmin xmax
+	relocate $xmin $2
+	ltype 3
+	if ($color) {ctype $3}
+	draw $xmax $2
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro y_fiducial 3 { # y-var x-pos color
+	vecminmax $1 ymin ymax
+	relocate $2 $ymin
+	ltype 3
+	if ($color) {ctype $3}
+	draw $2 $ymax
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro stats_plot 3 { # direction(0=x,1=y) abscissa ordinate
+	vecminmax $2 _min _max
+	if ($_min == $_max) {
+		define _avg ($_min)
+		define _std 0
+		define _kur 0
+	} else {
+		stats $2 _avg _std _kur
+	}
+	if ($1) {
+		y_fiducial $3 $_avg cyan
+	} else {
+		x_fiducial $3 $_avg cyan
+	}
+	if ($color) {ctype cyan}
+	limits 0 1 0 1
+	round $_avg 2 _avg
+	round $_std 1 _std
+	relocate 0.6 0.9
+	label mean = $_avg \pm\ $_std
+	if ($color) {ctype default}
+	foreach _v (_avg _std _kur _min _max) {delete $_v}
+}
+#
+macro round 3 { # scalar num-sig-figs output
+	if ($1 == 0) {
+		define $3 0
+		return
+	}
+	define _lx (lg(abs($1)))
+	if ($_lx >= 0) {
+		define _lx (int($_lx))
+	} else {
+		if ($_lx - int($_lx) < 0) {
+			define _lx (int($_lx - 1))
+		} else {
+			define _lx 0
+		}
+	}
+	define _x ($1/10**$_lx)
+	define _x (int($_x*10**($2 - 1))/10**($2 - 1 - $_lx))
+	define $3 ($_x)
+	delete _x
+	delete _lx
+}
+#
+macro new_label 6 { # ltype ctype x-pos y-pos width label
+	limits 0 1 0 1
+	ltype $1
+	if ($color) {ctype $2}
+	relocate $3 $4
+	define _x0 ($3 + $5)
+	draw $_x0 $4
+	ltype 0
+	define _x0 ($_x0 + 0.25*$5)
+	define _y0 ($4 - 0.005) # minor adjustment
+	relocate $_x0 $_y0
+	label {$6} # {}'s force correct font
+	if ($color) {ctype default}
+	delete _x0
+	delete _y0
+}
+#
+macro do_fft 6 { # t input-real input-imag p-sign log-p log-output-mag
+	define tlen dimen($1)
+	set j = 0, $tlen - 1
+	set hanning = 0.5*(1 - cos(2*$pi*j/$tlen))
+	set rhan = $2*hanning # apply Hanning window function
+	set ihan = $3*hanning
+	define n (2**(int(lg($tlen)/lg(2))+1))
+	define fillen ($n - $tlen)
+	set dimen(fill) = $fillen
+	set rhanf = rhan concat fill # pad with zeroes to nearest power of 2
+	set ihanf = ihan concat fill
+	fft 1 rhanf ihanf ftr fti
+	set jf = 0, $n - 1
+	set f = (jf <= $n/2 ? jf : (jf - $n)) # order frequencies
+	set f = f/($n*(t[1] - t[0]))
+	if ($4 > 0) { # choose +ve or -ve frequencies depending on p-sign
+		set tmpx = f if (f > 0)
+		set tmpy = ftr**2 + fti**2 if (f > 0)
+	} else {
+		set tmpx = -f if (f < 0)
+		set tmpy = ftr**2 + fti**2 if (f < 0)
+	}
+	set $5 = lg(1/tmpx) if (tmpy > 0) # to get around precision problems
+	set $6 = tmpy if (tmpy > 0)
+	set $6 = lg($6)
+	foreach _v (tlen j hanning rhan ihan fillen fill) {delete $_v}
+	foreach _v (rhanf ihanf ftr fti jf f tmpx tmpy) {delete $_v}
+}
+#
+macro plot_planet 6 { # a e i w W name
+	limits 0 1 0 1
+	relocate 0.45 1.03
+	label $6
+	expand 0.75
+	window 2 -3 1 3
+	limits t $1
+	box 0 2 0 0
+	ylabel a (AU)
+	if ($color) {ctype red}
+	connect t $1
+	if ($color) {ctype default}
+	window 2 -3 1 2
+	limits t $2
+	box 0 2 0 0
+	ylabel e
+	if ($color) {ctype green}
+	connect t $2
+	if ($color) {ctype default}
+	window 2 -3 1 1
+	limits t $3
+	box
+	xlabel Time t (yr)
+	ylabel i (rad)
+	if ($color) {ctype blue}
+	connect t $3
+	if ($color) {ctype default}
+#
+	ticksize -1 10 0 0
+	set ir = sqrt($1)
+	define dc (sum(ir)/dimen(ir))
+	set ir = ir - $dc # subtact DC component
+	set ii = 0*ir # zero array
+	do_fft t ir ii 1 p ft
+	window 2 -3 2 3
+	if (dimen(p)) {
+		limits p ft
+		box 0 3 1 3
+		ltype 4
+		grid 0 1
+		ltype 0
+		if ($color) {ctype red}
+		connect p ft
+		if ($color) {ctype default}
+		if ($use_cursor) {cursor}
+	} else {
+		echo WARNING: No FFT data
+	}
+	set ir = $2*cos($4)
+	set ii = $2*sin($4)
+	do_fft t ir ii 1 p ft
+	window 2 -3 2 2
+	limits p ft
+	box 0 3 0 3
+	ltype 4
+	grid 0 1
+	ltype 0
+	ylabel \leftarrow\ log_{10}(POWER) \rightarrow
+	if ($color) {ctype green}
+	connect p ft
+	if ($color) {ctype default}
+	if ($use_cursor) {cursor}
+	set ir = sin(0.5*$3)*cos($5)
+	set ii = sin(0.5*$3)*sin($5)
+	do_fft t ir ii 1 p ft
+	window 2 -3 2 1
+	limits p ft
+	box 1 3 0 3
+	ltype 4
+	grid 0 1
+	ltype 0
+	xlabel Period (yr)
+	if ($color) {ctype blue}
+	connect p ft
+	if ($color) {ctype default}
+	if ($use_cursor) {cursor}
+	window 1 1 1 1
+	expand 1.0001
+	ticksize 0 0 0 0
+	foreach _v (ir ii p ft dc) {delete $_v}
+	next
+}
+#
+macro read_snap 1 {
+	data $sss_snap
+	lines 1 $1
+	read {c 1 m 2 r 3 a 4 e 5 i 6 wx 7 wy 8 wz 9}
+	if ($r_is_softening) {set r = 0.5*r}
+	lines 0 0
+	#
+	set mp = m if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	if (dimen(mp) == 0) {
+		echo No planetesimals
+		quit
+	}
+	set rp = r if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set ap = a if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set ep = e if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set ip = i if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set wxp = wx if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set wyp = wy if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	set wzp = wz if (c == $planetesimal || ($jup_is_seed && c == $jupiter))
+	#
+	set mp = mp/$m0
+	set wp = sqrt(wxp**2 + wyp**2 + wzp**2)
+	#
+	set wpnz = wp if (wp > 0)
+	set wxpnz = wxp if (wp > 0)
+	set wypnz = wyp if (wp > 0)
+	set wzpnz = wzp if (wp > 0)
+}
+#
+if ($ps == 0) {dev x11 -geom 800x800+0+0}
+#
+expand 1.0001
+#
+# Summary...
+#
+data $data_file
+echo Reading summary...
+read {t 1 n 2 x 3 y 4 z 5 vx 6 vy 7 vz 8 am 9 mm 10 vd 11 e 12 i 13}
+#
+vecminmax n vmin vmax
+if (lg($vmax/$vmin) > $logn_lim) {define use_logn 1}
+set v = t if (t > 0)
+if (dimen(v) > 0) {
+	vecminmax v vmin vmax
+	if (lg($vmax/$vmin) > $logt_lim) {define use_logt 1}
+}
+set _m = mm/am
+vecminmax _m vmin vmax
+delete _m
+if (lg($vmax) > $logm_lim) {define use_logm 1}
+if ($use_logn || $use_logt || $use_logm) {set logt = lg(v)}
+if ($use_logt) {define ve0 (lg($ve0))}
+#
+echo Reading max mass data...
+read {a_max 14 e_max 15 i_max 16 spin_max 17 spinz_max 18}
+echo Reading Jupiter data...
+read {a_jup 19 e_jup 20 i_jup 21 w_jup 22 W_jup 23}
+echo Reading Saturn data...
+read {a_sat 24 e_sat 25 i_sat 26 w_sat 27 W_sat 28}
+echo Reading Uranus data...
+read {a_ura 29 e_ura 30 i_ura 31 w_ura 32 W_ura 33}
+echo Reading Neptune data...
+read {a_nep 34 e_nep 35 i_nep 36 w_nep 37 W_nep 38}
+set x = x/$precision
+set y = y/$precision
+set z = z/$precision
+set vx = vx/$precision
+set vy = vy/$precision
+set vz = vz/$precision
+if ($m0 > 0) {
+	set am = am/$m0
+	set mm = mm/$m0
+}
+round $m0 2 m0r
+#
+if ($ps) {dev postencap ssa_n.ps}
+LOCATION $($gx1 + 1000) $gx2 $gy1 $gy2
+if ($use_logn || $use_logt) {
+	set v = n if (t > 0)
+	set ly = lg(v)
+	limits logt ly
+	ticksize -1 10 -0.1 1
+} else {limits t n}
+box
+if ($use_grid) {draw_grid}
+xlabel Time t (yr)
+ylabel Number of Planetesimals N
+if ($color) {ctype $yellow}
+if ($use_logn || $use_logt) {connect logt ly} else {connect t n}
+if ($color) {ctype default}
+ticksize 0 0 0 0
+next
+LOCATION $($gx1 - 1000) $gx2 $gy1 $gy2
+#
+if ($ps) {dev postencap ssa_bary.ps}
+new_limits t 1 x y z
+window 1 -2 1 2
+box 0 2 0 0
+ylabel Barycentre Pos ($precision AU)
+x_fiducial t 0 default
+if ($color) {ctype red}
+connect t x
+ltype 1
+if ($color) {ctype green}
+connect t y
+ltype 2
+if ($color) {ctype blue}
+connect t z
+new_label 0 red   0.05 0.94 0.1 x
+new_label 1 green 0.05 0.88 0.1 y
+new_label 2 blue  0.05 0.82 0.1 z
+#
+new_limits t 1 vx vy vz
+window 1 -2 1 1
+box
+xlabel Time t (yr)
+ylabel Barycentre Vel ($precision \times\ 30 km s^{-1})
+x_fiducial t 0 default
+if ($color) {ctype red}
+connect t vx
+ltype 1
+if ($color) {ctype green}
+connect t vy
+ltype 2
+if ($color) {ctype blue}
+connect t vz
+new_label 0 red   0.05 0.94 0.1 v_x
+new_label 1 green 0.05 0.88 0.1 v_y
+new_label 2 blue  0.05 0.82 0.1 v_z
+next
+window 1 1 1 1
+#
+if ($ps) {dev postencap ssa_mmax.ps}
+if ($use_logt || $use_logm) {
+	set v = mm if (t > 0)
+	set ly1 = lg(v)
+	set v = am if (t > 0)
+	set ly2 = lg(v)
+	new_limits logt 0 ly1 ly2
+	ticksize -1 10 -1 10
+} else {
+	new_limits t 0 mm am
+	int_yticks mm
+}
+box
+if ($use_grid) {draw_grid}
+xlabel Time t (yr)
+ylabel m_{max}, <m> (units of m_0)
+if ($color) {ctype red}
+if ($use_logt || $use_logm) {connect logt ly1} else {connect t mm}
+ltype 2
+if ($color) {ctype green}
+if ($use_logt || $use_logm) {connect logt ly2} else {connect t am}
+ticksize 0 0 0 0
+new_label 0 red   0.05 0.95 0.1 m_{max}
+new_label 2 green 0.05 0.91 0.1 <m>
+relocate 0.05 0.85
+label m_0 = $m0r M_\odot
+next
+#
+if ($ps) {dev postencap ssa_vd.ps}
+if ($m0 == 0) {
+	set dimen(r) = dimen(t) # zero array
+	set dimen(ve) = dimen(t)
+} else {
+	set r = ((mm*$m0*$Ms/(4/3*$pi*$rho*1000))**(1/3))/$AU
+	set ve = sqrt(2*mm*$m0/r)
+}
+if ($use_logt) {
+	set v = vd if (t > 0)
+	set ly1 = lg(v)
+	set v = ve if (t > 0)
+	set ly2 = lg(v)
+	new_limits logt 0 ly1 ly2
+	ticksize -1 10 -1 10
+} else {
+	new_limits t 0 vd ve
+	limits t 0 $vmax # force start at 0 on y-axis
+}
+box
+if ($use_grid) {draw_grid}
+xlabel Time t (yr)
+ylabel Velocity Dispersion (units of 30 km s^{-1})
+if ($color) {ctype $yellow}
+if ($use_logt) {connect logt ly1} else {connect t vd}
+ltype 4
+if ($color) {ctype red}
+if ($use_logt) {connect logt ly2} else {connect t ve}
+if ($use_logt) {x_fiducial logt $ve0 blue} else {x_fiducial t $ve0 blue}
+ticksize 0 0 0 0
+new_label 4 red  0.7 0.15 0.1 v_{esc,max}
+new_label 3 blue 0.7 0.10 0.1 v_{esc,min}
+next
+#
+if ($ps) {dev postencap ssa_ei.ps}
+LOCATION $($gx1 + 1000) $gx2 $gy1 $gy2
+if ($use_logt) {
+	set v = e if (t > 0)
+	set ly1 = lg(v)
+	set v = i if (t > 0)
+	set ly2 = lg(v)
+	new_limits logt 0 ly1 ly2
+	ticksize -1 10 -1 10
+} else {
+	new_limits t 0 e i
+	limits t 0 $vmax # force start at 0 on y-axis
+}
+box
+if ($use_grid) {draw_grid}
+xlabel Time t (yr)
+ylabel <e^2>^{1/2}, <i^2>^{1/2}
+if ($color) {ctype red}
+if ($use_logt) {connect logt ly1} else {connect t e}
+ltype 2
+if ($color) {ctype green}
+if ($use_logt) {connect logt ly2} else {connect t i}
+ticksize 0 0 0 0
+new_label 0 red   0.05 0.93 0.1 <e^2>^{1/2}
+new_label 2 green 0.05 0.88 0.1 <i^2>^{1/2}
+next
+#
+if ($ps) {dev postencap ssa_max.ps}
+window 2 2 1 2
+limits t a_max
+box
+xlabel Time t (yr)
+ylabel Semi-major Axis a (AU)
+if ($color) {ctype $yellow}
+connect t a_max
+x_fiducial t $a_min0 blue
+x_fiducial t $a_max0 blue
+window 2 2 2 2
+limits t e_max
+box
+xlabel Time t (yr)
+ylabel Eccentricity e
+if ($color) {ctype red}
+connect t e_max
+if ($color) {ctype default}
+window 2 2 1 1
+limits t i_max
+box
+xlabel Time t (yr)
+ylabel Inclination i (rad)
+if ($color) {ctype green}
+connect t i_max
+if ($color) {ctype default}
+window 2 2 2 1
+new_limits t 1 spin_max
+box
+xlabel Time t (yr)
+ylabel Spin |\omega|, \omega_z (d^{-1})
+if ($color) {ctype blue}
+connect t spin_max
+ltype 2
+if ($color) {ctype cyan}
+connect t spinz_max
+x_fiducial t $spin_max_nve default
+x_fiducial t 0 default
+x_fiducial t $spin_max_pve default
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.15 1.03
+label PROPERTIES OF INSTANTANEOUS MAXIMUM MASS
+next
+#
+if (dimen(t) > 1) {
+	if (a_jup[0]) {
+		if ($ps) {dev postencap ssa_jup.ps}
+		plot_planet a_jup e_jup i_jup w_jup W_jup Jupiter
+	}
+	#
+	if (a_sat[0]) {
+		if ($ps) {dev postencap ssa_sat.ps}
+		plot_planet a_sat e_sat i_sat w_sat W_sat Saturn
+	}
+	#
+	if (a_ura[0]) {
+		if ($ps) {dev postencap ssa_ura.ps}
+		plot_planet a_ura e_ura i_ura w_ura W_ura Uranus
+	}
+	#
+	if (a_nep[0]) {
+		if ($ps) {dev postencap ssa_nep.ps}
+		plot_planet a_nep e_nep i_nep w_nep W_nep Neptune
+	}
+}
+#
+# snapshot...
+#
+read_snap 0
+#
+if ($ps) {dev postencap ssa_a.ps}
+hist_limits ap $n_abins
+box
+xlabel Semi-major Axis a (AU)
+ylabel Number N
+x_fiducial b 0 default
+x_fiducial b 1 default
+if ($color) {ctype $yellow}
+histogram b h
+y_fiducial h $a_min0 blue
+y_fiducial h $a_max0 blue
+next
+#
+if ($ps) {dev postencap ssa_e.ps}
+hist_limits ep $n_ebins 0
+box
+xlabel Eccentricity e
+ylabel Number N
+x_fiducial b 0 default
+x_fiducial b 1 default
+if ($color) {ctype $yellow}
+barhist 100 b h
+stats_plot 1 ep h
+next
+#
+if ($ps) {dev postencap ssa_i.ps}
+hist_limits ip $n_ibins 0
+box
+xlabel Inclination i (rad)
+ylabel Number N
+x_fiducial b 0 default
+x_fiducial b 1 default
+if ($color) {ctype $yellow}
+barhist 100 b h
+stats_plot 1 ip h
+next
+#
+if (dimen(wpnz) > 0) { # in case no spin info
+	if ($ps) {dev postencap ssa_w.ps}
+	window 2 2 1 2
+	hist_limits wpnz $n_wbins 0
+	box
+	xlabel Spin |\omega| (d^{-1})
+	ylabel Number N
+	if ($color) {ctype $yellow}
+	barhist 100 b h
+	y_fiducial h 0 default
+	y_fiducial h $spin_max_pve default
+	expand 0.5
+	stats_plot 1 wpnz h
+	expand 1.0001
+	window 2 2 2 2
+	get_sym_limits wzp vmin vmax
+	hist_limits wzpnz $n_wbins $vmin $vmax
+	box
+	xlabel Spin \omega_z (d^{-1})
+	ylabel Number N
+	if ($color) {ctype red}
+	barhist 100 b h
+	y_fiducial h $spin_max_nve default
+	y_fiducial h 0 default
+	y_fiducial h $spin_max_pve default
+	expand 0.5
+	stats_plot 1 wzpnz h
+	expand 1.0001
+	window 2 2 1 1
+	get_sym_limits wxp vmin vmax
+	hist_limits wxpnz $n_wbins $vmin $vmax
+	box
+	xlabel Spin \omega_x (d^{-1})
+	ylabel Number N
+	if ($color) {ctype green}
+	barhist 100 b h
+	y_fiducial h $spin_max_nve default
+	y_fiducial h 0 default
+	y_fiducial h $spin_max_pve default
+	expand 0.5
+	stats_plot 1 wxpnz h
+	expand 1.0001
+	window 2 2 2 1
+	get_sym_limits wyp vmin vmax
+	hist_limits wypnz $n_wbins $vmin $vmax
+	box
+	xlabel Spin \omega_y (d^{-1})
+	ylabel Number N
+	if ($color) {ctype blue}
+	barhist 100 b h
+	y_fiducial h $spin_max_nve default
+	y_fiducial h 0 default
+	y_fiducial h $spin_max_pve default
+	expand 0.5
+	stats_plot 1 wypnz h
+	expand 1.0001
+	window 1 1 1 1
+	next
+} # if (dimen(wpnz) > 0)
+#
+if ($ps) {dev postencap ssa_m.ps}
+hist_limits mp -1
+if (lg(h[0]) > $logn_lim || $use_logm) {
+	set v = b if (h > 0)
+	set lx = lg(v)
+	set v = h if (h > 0)
+	set ly = lg(v)
+	limits lx ly
+	if (mm[dimen(mm) - 1] <= 10) {
+		ticksize -1 1 -1 10
+	} else {
+		ticksize -1 10 -1 10
+	}
+} else {
+	int_xticks mp
+}
+box
+if ($use_grid) {draw_grid}
+xlabel Mass m (units of m_0)
+ylabel Number in Bin n
+if ($color) {ctype $yellow}
+if (lg(h[0]) > $logn_lim || $use_logm) {
+	ptype 4 3
+	points lx ly
+	connect lx ly
+} else {
+	barhist 100 b h
+}
+if ($color) {ctype default}
+ticksize 0 0 0 0
+limits 0 1 0 1
+relocate 0.7 0.95
+label m_0 = $m0r M_\odot
+next
+#
+if ($big != 0) {
+	if ($jup_is_seed) {
+		define nl (dimen(a) - 1) # dummy
+		if (c[$nl] != $jupiter) {
+			echo Expected seed to be last entry in data file
+			quit
+		}
+		define aseed (a[$nl])
+	}
+	if ($big < 0) {
+		define nl (-$big)
+	} else {
+		define nl (int(0.01*$big*dimen(mp)))
+	}
+	if ($nl > 0 && $nl < dimen(mp)) {
+		read_snap $nl
+	}
+	delete nl
+	if (dimen(ap) < $n_mark) {define n_mark (dimen(ap))}
+	set rp = rp/$r0*$r_scale
+	if ($ps) {dev postencap ssa_aei.ps}
+	limits ap ep
+	window 1 -2 1 2
+	box 0 2 0 0
+	ylabel Eccentricity e
+	if ($qQ_plot) {
+		vecminmax ap vmin vmax
+		if ($jup_is_seed) {
+			define _a0 $aseed
+		} else {
+			define _a0 (ap[0])
+		}
+		define _da (0.01*($vmax - $vmin))
+		ltype 2
+		set _a = $vmin, $_a0, $_da
+		set _e = $_a0/_a - 1
+		set _a = _a if (_e >= 0 && _e <= 1)
+		set _e = _e if (_e >= 0 && _e <= 1)
+		connect _a _e
+		set _a = $_a0, $vmax, $_da
+		set _e = 1 - $_a0/_a
+		set _a = _a if (_e >= 0 && _e <= 1)
+		set _e = _e if (_e >= 0 && _e <= 1)
+		connect _a _e
+		ltype 0
+		foreach _v (_e _a _da _a0) {delete $_v}
+	}
+	ptype 20 0
+	if ($color && !$fast) {
+		color_points mp rp ap ep
+	} else {
+		expand rp
+		if ($color) {ctype $yellow}
+		points ap ep
+	}
+	expand 1.0001
+	y_fiducial ep $a_min0 blue
+	y_fiducial ep $a_max0 blue
+	stats_plot 0 ep ap
+	#
+	limits ap ip
+	window 1 -2 1 1
+	box
+	xlabel Semi-major Axis a (AU)
+	ylabel Inclination i (rad)
+	ptype 20 0
+	if ($color && !$fast) {
+		color_points mp rp ap ip
+	} else {
+		expand rp
+		if ($color) {ctype $yellow}
+		points ap ip
+	}
+	expand 1.0001
+	y_fiducial ip $a_min0 blue
+	y_fiducial ip $a_max0 blue
+	stats_plot 0 ip ap
+	next
+	#
+	if ($ps) {dev postencap ssa_aw.ps}
+	limits ap wp
+	window 1 -2 1 2
+	box 0 2 0 0
+	ylabel Spin |\omega| (d^{-1})
+	ptype 20 0
+	if ($color && !$fast) {
+		color_points mp rp ap wp
+	} else {
+		expand rp
+		if ($color) {ctype $yellow}
+		points ap wp
+	}
+	expand 1.0001
+	x_fiducial ap 0 default
+	x_fiducial ap $spin_max_pve default
+	y_fiducial wp $a_min0 blue
+	y_fiducial wp $a_max0 blue
+	stats_plot 0 wp ap
+	#
+	new_limits ap 1 wzp
+	window 1 -2 1 1
+	box
+	xlabel Semi-major Axis a (AU)
+	ylabel Spin \omega_z (d^{-1})
+	ptype 20 0
+	if ($color && !$fast) {
+		color_points mp rp ap wzp
+	} else {
+		expand rp
+		if ($color) {ctype $yellow}
+		points ap wzp
+	}
+	expand 1.0001
+	x_fiducial ap $spin_max_nve default
+	x_fiducial ap 0 default
+	x_fiducial ap $spin_max_pve default
+	y_fiducial wzp $a_min0 blue
+	y_fiducial wzp $a_max0 blue
+	stats_plot 0 wzp ap
+	next
+	#
+	ptype 4 3
+	window 1 1 1 1
+	#
+} # if ($big != 0)
+#
+foreach _v (c m r a e i wx wy wz mp rp ap ep ip) {delete $_v}
+foreach _v (wxp wyp wzp wpnz wxpnz wypnz wzpnz) {delete $_v}
+#
+# bins in snapshot...
+#
+data $abin_snap
+read {ax 1 m 2 vd 3 vdr 4}
+#
+if ($ps) {dev postencap ssa_am.ps}
+set m = m/$m0
+limits ax m
+box
+xlabel Semi-major Axis a (AU)
+ylabel Planetesimal Mass (units of m_0)
+if ($color) {ctype $yellow}
+barhist ax m
+x_fiducial m 0 blue
+x_fiducial m 1 blue
+next
+#
+if ($ps) {dev postencap ssa_avd.ps}
+limits ax vd
+box
+xlabel Semi-major Axis a (AU)
+ylabel Velocity Dispersion \sigma\ (30 km s^{-1})
+if ($color) {ctype $yellow}
+set nzx = ax if (vd > 0)
+set nzy = vd if (vd > 0)
+points nzx nzy
+connect nzx nzy
+delete nzy
+delete nzx
+y_fiducial vd $a_min0 blue
+y_fiducial vd $a_max0 blue
+next
+#
+data $mbin_snap
+read {mx 1 e 2 i 3}
+set mx = mx/$m0
+#
+if ($ps) {dev postencap ssa_mei.ps}
+limits mx e
+window 1 -2 1 2
+box 0 2 0 0
+ylabel <e^2>^{1/2}
+x_fiducial e 0 default
+if ($color) {ctype $yellow}
+set nzx = mx if (e > 0)
+set nzy = e if (e > 0)
+points nzx nzy
+connect nzx nzy
+delete nzy
+delete nzx
+if ($color) {ctype default}
+limits 0 1 0 1
+relocate 0.7 0.90
+label m_0 = $m0r M_\odot
+#
+limits mx i
+window 1 -2 1 1
+box
+xlabel Mass m (units of m_0)
+ylabel <i^2>^{1/2}
+x_fiducial e 0 default
+if ($color) {ctype $yellow}
+set nzx = mx if (i > 0)
+set nzy = i if (i > 0)
+points nzx nzy
+connect nzx nzy
+delete nzy
+delete nzx
+if ($color) {ctype default}
+limits 0 1 0 1
+relocate 0.7 0.90
+label m_0 = $m0r M_\odot
+next
+window 1 1 1 1
+#
+if ($ps) {dev postencap ssa_sd.ps}
+vecminmax ax vmin vmax
+define aw (($vmax - $vmin)/(dimen(ax) - 1))
+set sd = m/(2*$pi*ax*$aw)*($m0*$Ms/$AU**2)
+limits ax sd
+box
+xlabel Semi-major Axis a (AU)
+ylabel Surface Density \Sigma\ (kg m^{-2})
+if ($color) {ctype $yellow}
+points ax sd
+connect ax sd
+if ($color) {ctype default}
+set zax = ax if (ax >= $a_min0 + 0.5*$aw && ax <= $a_max0 - 0.5*$aw && sd > 0)
+set zsd = sd if (ax >= $a_min0 + 0.5*$aw && ax <= $a_max0 - 0.5*$aw && sd > 0)
+set zm = m if (ax >= $a_min0 + 0.5*$aw && ax <= $a_max0 - 0.5*$aw && sd > 0)
+# get bin weights...
+set ze = sqrt($m0/zm)
+errorbar zax zsd ze 2
+errorbar zax zsd ze 4
+#
+set lax = lg(zax)
+set lsd = lg(zsd)
+wlsq lax lsd ze lax ly
+define b (10**$b)
+define db ($b*ln(10)*$db)
+set y = 10**ly
+if ($color) {ctype red}
+connect zax y
+y_fiducial sd $a_min0 blue
+y_fiducial sd $a_max0 blue
+limits 0 1 0 1
+round $a 3 a
+round $da 2 da
+round $b 3 b
+round $db 2 db
+relocate 0.35 0.95
+label \Sigma\ \propto\ r^{$a} (\sigma_a = $da)
+relocate 0.35 0.92
+label \Sigma(1 AU) = $b kg m^{-2} (\sigma_b = $db)
+next
+#
+if ($ps) {dev postencap ssa_q.ps}
+set k = sqrt($G*$Mc*$Ms/(ax*$AU)**3) # epicyclic frequency
+# internal particle density assumed UNIFORM...
+define d (1000*$rho)
+set lc = 4*$pi**2*$G*sd/k**2
+define r_max ((mm[dimen(mm) - 1]*$m0*$Ms/(4/3*$pi*$d))**(1/3))
+define r_avg ((am[dimen(am) - 1]*$m0*$Ms/(4/3*$pi*$d))**(1/3))
+define r_0 (($m0*$Ms/(4/3*$pi*$d))**(1/3))
+set lc_max = lc/$r_max
+set lc_avg = lc/$r_avg
+set lc_0 = lc/$r_0
+window 1 -2 1 2
+new_limits ax 0 lc_max lc_avg lc_0
+box 0 2 0 0
+ylabel \lambda_{crit} / R
+x_fiducial ax 1 default
+if ($color) {ctype red}
+points ax lc_max
+connect ax lc_max
+if ($color) {ctype green}
+points ax lc_avg
+connect ax lc_avg
+if ($color) {ctype blue}
+points ax lc_0
+connect ax lc_0
+y_fiducial lc_avg $a_min0 blue
+y_fiducial lc_0 $a_max0 blue
+define r_max (0.001*$r_max)
+define r_avg (0.001*$r_avg)
+define r_0 (0.001*$r_0)
+limits 0 1 0 1
+round $r_max 3 r_max
+round $r_avg 3 r_avg
+round $r_0 3 r_0
+if ($color) {ctype red}
+relocate 0.05 0.92
+label R_{max}
+relocate 0.11 0.92
+label = $r_max km
+if ($color) {ctype green}
+relocate 0.05 0.84
+label R_{avg}
+relocate 0.11 0.84
+label = $r_avg km
+if ($color) {ctype blue}
+relocate 0.05 0.76
+label R_0
+relocate 0.11 0.76
+label = $r_0 km
+if ($color) {ctype default}
+#
+set zsd = sd if (sd > 0)
+if (dimen(zsd) > 0) {
+	set zvdr = vdr if (sd > 0)
+	set zk = k if (sd > 0)
+	set zax = ax if (sd > 0)
+	set q = (zvdr*2*$pi*$AU/(365.25*24*60*60))*zk/(3.36*$G*zsd)
+	set lq = lg(q)
+	window 1 -2 1 1
+	vecminmax q vmin vmax
+	if ($vmax/$vmin < 10) {
+		ticksize 0 0 -1 2
+	} else {
+		ticksize 0 0 -1 10
+	}
+	limits zax lq
+	box
+	ticksize 0 0 0 0
+	xlabel Semi-major Axis a (AU)
+	ylabel Q
+	x_fiducial zax 0 default
+	y_fiducial lq $a_min0 blue
+	y_fiducial lq $a_max0 blue
+	if ($color) {ctype $yellow}
+	points zax lq
+	connect zax lq
+	if ($color) {ctype default}
+}
+next
+window 1 1 1 1
+#
+# log file...
+#
+data $log_file
+read {t 1 te 3 ke 4 pe 5 lx 7 ly 8 lz 9 wcpu 11 icpu 12 eff 14}
+set t = t/(2*$pi) # convert to "years"
+define norm (te[0])
+if ($norm == 0) {
+	echo WARNING: Zero initial total energy -- normalization disabled
+	define norm 1
+}
+set dte = (te - te[0])/$norm
+set dke = (ke - ke[0])/$norm
+set dpe = (pe - pe[0])/$norm
+set l = sqrt(lx*lx + ly*ly + lz*lz)
+define norm (l[0])
+if ($norm == 0) {
+	echo WARNING: Zero initial total ang mom -- normalization disabled
+	define norm 1
+}
+set lx = (lx - lx[0])/$norm
+set ly = (ly - ly[0])/$norm
+set lz = (lz - lz[0])/$norm
+set l = (l - l[0])/$norm
+set wcpu = wcpu*$log_int*eff/60
+set icpu = icpu*$log_int*eff/60
+set cwcpu = cumulate(wcpu)
+set cicpu = cumulate(icpu)
+#
+if ($ps) {dev postencap ssa_te.ps}
+window 1 -3 1 3
+limits t dte
+box 0 2 0 0
+ylabel \Delta E/|E_0|
+if ($color) {ctype yellow}
+connect t dte
+if ($color) {ctype default}
+window 1 -3 1 2
+limits t dke
+box 0 2 0 0
+ylabel \Delta T/|E_0|
+if ($color) {ctype red}
+connect t dke
+if ($color) {ctype default}
+window 1 -3 1 1
+limits t dpe
+box
+xlabel Time (yr)
+ylabel \Delta U/|E_0|
+if ($color) {ctype green}
+connect t dpe
+if ($color) {ctype default}
+next
+window 1 1 1 1
+#
+if ($ps) {dev postencap ssa_l.ps}
+window 2 2 1 2
+limits t lx
+box
+xlabel Time (yr)
+ylabel \Delta L_x/|L_0|
+if ($color) {ctype red}
+connect t lx
+if ($color) {ctype default}
+window 2 2 2 2
+limits t ly
+box 1 1 0 0
+xlabel Time (yr)
+ylabel \raise1000\Delta L_y/|L_0|
+if ($color) {ctype green}
+connect t ly
+if ($color) {ctype default}
+window 2 2 1 1
+limits t lz
+box
+xlabel Time (yr)
+ylabel \Delta L_z/|L_0|
+if ($color) {ctype blue}
+connect t lz
+if ($color) {ctype default}
+window 2 2 2 1
+limits t l
+box 1 1 0 0
+xlabel Time (yr)
+ylabel \raise1000\Delta |L|/|L_0|
+if ($color) {ctype yellow}
+connect t l
+if ($color) {ctype default}
+next
+window 1 1 1 1
+#
+if ($ps) {dev postencap ssa_cpu.ps}
+new_limits t 0 cwcpu cicpu
+box
+xlabel Time (yr)
+ylabel CPU MIN
+if ($color) {ctype red}
+connect t cwcpu
+ltype 2
+if ($color) {ctype green}
+connect t cicpu
+new_label 0 red   0.05 0.94 0.1 Walk
+new_label 2 green 0.05 0.82 0.1 Interact
+next
+#
+if ($ps) {dev postencap ssa_eff.ps}
+limits t eff
+box
+xlabel Time (yr)
+ylabel Multi-Stepping Efficiency (\#force evals/particle/max step)
+if ($color) {ctype $yellow}
+connect t eff
+if ($color) {ctype default}
+next
+#
+quit
+#

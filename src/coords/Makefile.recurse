@@ -1,0 +1,36 @@
+VPATH = ..
+TOP	= $(VPATH)/../..
+INCS = -I$(TOP)/include
+
+SRCS = deltohel.c eccanom.c heltodel.c hypanom.c hyperlib.c paranom.c
+OBJS = $(SRCS:.c=.o)
+
+TARGETS = libcoords.a
+LIB_DEST = $(TOP)/lib/$(OS)
+
+all: $(TARGETS)
+
+libcoords.a: $(OBJS)
+	@$(AR) rcv $@ $(OBJS) 1> /dev/null
+	@ranlib $@
+	@rm -f $(LIB_DEST)/$@
+	@cp $@ $(LIB_DEST)
+
+DEPDIR = .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
+
+*.o: ../../../Makefile ../../../Makefile.in Makefile.recurse
+%.o: %.c
+%.o: %.c $(DEPDIR)/%.d
+	$(CC) -c $(CFLAGS) $(DEPFLAGS) $(INCS) $(VPATH)/$*.c
+	$(POSTCOMPILE)
+	
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
+
+clean:
+	rm -rf ../$(OS)

@@ -1,0 +1,1 @@
+special.o: ../../special.c

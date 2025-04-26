@@ -1,0 +1,173 @@
+#!/bin/csh -f
+#
+onintr trap-STOP # to clean up files after CTRL-C interrupt...
+#
+set me = 'sstest:'
+alias echox echo $me
+alias echoq echo -n $me '\!* \(Y/N\)\?\ '
+alias getyn 'set yn = $<; set yn = `echo $yn | tr a-z A-Z`'
+#
+if ($#argv > 0) then
+	echox no arguments expected
+	exit 1
+endif
+#
+if !(-e sstest.par) then
+	echox sstest.par not found
+	exit 1
+endif
+#
+rm -f ss.par
+ln -s sstest.par ss.par
+#
+set mode
+while ($mode != null && $mode != mpi && $mode != pthread)
+	echox 'enter chosen target parallel option [null|mpi|pthread]:'
+	echox '[NOTE: only the COLLISIONS compile option is supported]'
+	set mode = $<
+end
+#
+rm -f pkdgrav
+ln -s pkdgrav.$mode pkdgrav
+#
+@ parallel = ($mode != null)
+#
+@ asknp = ($mode == pthread)
+#
+if ($mode == mpi) then
+	while ($mode != mpich && $mode != lam && $mode != openmpi)
+		echox 'enter flavour of MPI [mpich|lam|openmpi]:'
+		set mode = $<
+	end
+	if !(-e ssauto.par) then
+		echo Expected to find ssauto.par ... aborting
+		exit 1
+	endif
+	source ssauto.par
+	set yn
+	while ($yn != Y && $yn != N)
+		if ($mode == mpich) then
+			echoq Use $mpich_hosts file
+		else if ($mode == lam) then
+			echoq Use $lam_hosts file
+		else
+			echoq Use $openmpi_hosts file
+		endif
+		getyn
+	end
+	@ asknp = ($yn == N)
+	if !($asknp) then
+		echox be sure host file is present and correctly configured
+	endif
+endif
+#
+@ np = 0
+if ($asknp) then
+	while ($np <= 0)
+		echox enter number of processors to use:
+		@ np = $<
+	end
+endif
+#
+# Messy stuff...
+#
+if ($parallel) then
+	if ($mode == mpich || $mode == lam || $mode == openmpi) then
+		if ($asknp) then
+			cat >! .sstest1.tmp << EOF
+Y
+$mode
+N
+$np
+EOF
+			cat >! .sstest2.tmp << EOF
+Y
+N
+N
+$mode
+N
+$np
+EOF
+		else
+			cat >! .sstest1.tmp << EOF
+Y
+$mode
+Y
+EOF
+			cat >! .sstest2.tmp << EOF
+Y
+N
+N
+$mode
+Y
+EOF
+		endif
+	else if ($mode == pthread) then
+		cat >! .sstest1.tmp << EOF
+Y
+$mode
+$np
+EOF
+		cat >! .sstest2.tmp << EOF
+Y
+N
+N
+$mode
+$np
+EOF
+	endif
+else
+	cat >! .sstest1.tmp << EOF
+Y
+$mode
+EOF
+	cat >! .sstest2.tmp << EOF
+Y
+N
+N
+$mode
+EOF
+endif
+#
+if ($parallel) then
+	set N_range = (100000 1000000)
+	set newOut = 10
+else
+	set N_range = (1000 10000 100000)
+	set newOut = 1
+endif
+#
+foreach N ($N_range)
+	if (-e ssic.ss) rm -f ssic.ss
+	if (-e .lockfile) rm -f .lockfile
+	echox starting N = $N test...
+	set oldN = `awk '/Number of planetesimals/{print $4}' ssic.par`
+	sed '/Number of planetesimals/s/'$oldN'/'$N'/' ssic.par >! .tmp
+	mv -f .tmp ssic.par
+	set oldOut = `awk '/iOutInterval/{print $3}' ss.par`
+	sed '/iOutInterval/s/'$oldOut'/'$newOut'/' ss.par >! .tmp
+	mv -f .tmp ss.par
+	echox preparing initial conditions...
+	time ./ssauto < .sstest1.tmp
+	echox done...press ENTER to continue
+	set dum = $<
+	echox running pkdgrav...
+	time ./ssauto < .sstest2.tmp
+	sed 's/MFlops:/MFlops /' ssauto.log | sed 's/, Flop/ Flop/' | awk 'BEGIN {min=1e9;avg=0;max=0;n=0} /MFlops/{if ($7 < min) min = $7; avg += $7; n += 1; if ($7 > max) max = $7} END {if (n == 0) {print "No gravity timing data found"} else {print "MFlops (min/avg/max): "min"/"(avg/n)"/"max}}'
+	awk 'BEGIN {min=1e9;avg=0;max=0;n=0} /time =/{if ($6 < min) min = $6; avg += $6; n += 1; if ($6 > max) max = $6} END {if (n == 0) {print "No collision timing data found"} else {print "Collision search (min/avg/max) sec: "min"/"(avg/n)"/"max}}' ssauto.log
+	echox done...press ENTER to continue
+	set dum = $<
+	echox analyzing...
+	time ./ssa -f ss.?????
+	echox done...press ENTER to continue
+	set dum = $<
+	echox drawing...
+	time ./ssdraw ss.?????
+	echox done...press ENTER to continue
+	set dum = $<
+	rm -f .lockfile
+end
+#
+trap-STOP:
+	rm -f .sstest*
+#

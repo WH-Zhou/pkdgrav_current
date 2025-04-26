@@ -1,0 +1,5 @@
+lengthunit 6.68445e-14 # 1 cm in AU
+
+wall # floor
+  type plane
+  origin 0 0 -1

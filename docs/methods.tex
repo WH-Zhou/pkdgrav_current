@@ -1,0 +1,321 @@
+\input{preamble}
+
+\newcommand{\nr}{\textit{NR}}
+\newcommand{\gsl}{\textit{GSL}}
+
+\begin{document}
+
+\begin{flushleft}
+  \huge{Numerical Methods}\\
+  \bigskip\bigskip
+  \Large{Last Update: 8/1/18}\\
+  \bigskip\bigskip
+  \large{Started By: Derek C. Richardson}\\
+  \bigskip
+  \large{Contact Info:}\\
+  Department of Astronomy\\
+  University of Maryland\\
+  College Park MD 20742\\
+  Tel: 301-405-8786\\
+  E-mail: \texttt{dcr@astro.umd.edu}
+\end{flushleft}
+
+\tableofcontents
+
+\section{OVERVIEW}
+
+Certain standard numerical methods are needed for various routines in
+\pkd\ and accompanying software.  Rather than writing these all from
+scratch, the approach has been to adapt existing published methods to
+the code.  When \pkd\ was first developed, several routines from
+\textit{Numerical Recipes} (\nr, various editions) were adopted, but
+these have a restrictive distribution license.  Since the aim is to
+have a public release of \pkd, it is necessary to provide alternatives
+to the \nr\ routines.  For now we have chosen the \textit{GNU
+  Scientific Library} (\gsl) to fill this role.  The user may choose
+between \nr\ and \gsl\ when compiling.  Any public release of the code
+will only have \gsl\ available.
+
+This document describes the available methods, their calling
+structure, and how to select them during compilation.  In addition,
+each collection of methods has a standalone test suite that can be
+invoked by editing the corresponding source file---instructions are in
+the files themselves.
+
+\section{Choosing Between \nr\ and \gsl}
+
+In \code{Makefile.in}, uncomment \code{USE\_NUMREC} for \nr, or
+\code{USE\_GSL} for \gsl, along with the corresponding \code{METHOD}
+macros.  For \nr, the \code{METHOD} macros are blank because the code
+is part of the \pkd\ (private) code base.  For \gsl, they provide the
+location of include files and libraries (and which libraries to use).
+The example in \code{Makefile.in} is for a typical \textit{MacPorts}
+install on a Mac.  The chosen methods will be used when the code is
+compiled with \code{make}.
+
+\section{Integration of Differential Equations (\code{diffeq.c})}
+
+\noindent\underline{Synopsis}
+
+\begin{verbatim}
+#include <diffeq.h>
+
+void diffeqIntegrate(FLOAT fVars[], int nVars, FLOAT fStart, FLOAT fStop,
+                     FLOAT fAccuracy, FLOAT fStepTry, FLOAT fStepMin,
+                     diffeqDerivsT funcDerivs, void *pUserData);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{fVars[]} & input: starting values of dependent variables \\
+    \code{fVars[]} & output: final solution values for dependent variables \\
+    \code{nVars} & input: number of variables \\
+    \code{fStart} & input: start value of independent variable (\eg time) \\
+    \code{fStop} & input: final value for independent variable \\
+    \code{fAccuracy} & input: accuracy parameter for the integrator \\
+    \code{fStepTry} & input: initial step size to try \\
+    \code{fStepMin} & input: smallest allowed step size (can be zero) \\
+    \code{funcDerivs} & input: name of function for computing derivatives \\
+    \code{pUserData} & input: generic pointer to optional data (can be NULL) \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+  
+\code{diffeqIntegrate()} provides a method for integrating ordinary
+differential equations (ODEs) with time adapativity.  The \nr\ and
+\gsl\ implementations use slightly different 5th-order Runge-Kutta
+integrators and adaptive step algorithms, but no noticeable difference
+was found in simple tests.  The derivatives function has the following
+prototype:
+
+\begin{verbatim}
+#include "floattype.h"
+
+typedef int (*diffeqDerivsT)(FLOAT t, const FLOAT fVars[], FLOAT fDerivs[],
+                             void *pUserData);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{t} & input: value of independent variable (\eg time) \\
+    \code{fVars} & input: values of dependent variables \\
+    \code{fDerivs} & output: derivative values (\ie left-hand-sides of ODEs) \\
+    \code{pUserData} & input: genetic pointer to optional data (can be NULL) \\
+    \hline
+    \multicolumn{2}{c}{return: 0 on success} \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+\section{Matrix Inversion and Diagonalization (\code{matrix.c})}
+
+\noindent\underline{Synopsis}
+
+\begin{verbatim}
+#include <matrix.h>
+
+void matrixInvert(Matrix m);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{m} & input: matrix to be inverted \\
+    \code{m} & output: inverted matrix \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+\begin{verbatim}
+void matrixDiagonalize(const Matrix m, Vector vEvals, Matrix mEvecs, int bSort);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{m} & input: matrix to be diagonalized \\
+    \code{vEvals} & output: eigenvalues \\
+    \code{vEvecs} & output: eigenvectors \\
+    \code{bSort} & input: 0 = do not sort, otherwise sort \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+These functions implement matrix operations that are not just simple
+transformations.  The vector and matrix types are defined in
+\code{matrix.h} if needed, but are simply \code{FLOAT[3]} and
+\code{FLOAT[3][3]} respectively, where \code{FLOAT} is assumed to be
+\code{double} unless overridden by \code{floattype.h} (\pkd\ only).
+\code{matrixInvert} can be used to solve systems of equations, but it
+is generally more efficient to use a specialized system solver for
+that (not needed so far).  \code{matrixDiagonalize} requires the input
+matrix to be real symmetric; the resulting eigenvectors form an
+orthonormal set.  Optionally the eigenvalues can be sorted in order of
+decreasing magnitude, with the eigenvectors correspondingly rearranged
+(not needed so far).
+
+\section{Polynomial Root Finding (\code{polyroots.c})}
+
+\noindent\underline{Synopsis}
+
+\begin{verbatim}
+#include <polyroots.h>
+
+int polyQuadSolve(double a, double b, double c, double *x1, double *x2);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{a}, \code{b}, \code{c} & input: coefficients of $ax^2 + bx + c = 0$ \\
+    \code{x1}, \code{x2} & output: pointers to roots of equation \\
+    \hline
+    \multicolumn{2}{c}{return: 0 if 2 real roots found, 1 otherwise} \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+\begin{verbatim}
+int polyCubicSolveLimited(double a1, double a2, double a3, double *x1,
+                          double *x2, double *x3);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{a1}, \code{a2}, \code{a3} & input: coefficients of $x^3 +
+    a_1x^2 + a_2x + a_3 = 0$ \\
+    \code{x1}, \code{x2}, \code{x3} & output: pointers to roots of equation \\
+    \hline
+    \multicolumn{2}{c}{return: 0 if 3 real roots found, 1 otherwise} \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+\begin{verbatim}
+int polyQuarticSolveLimited(double a1, double a2, double a3, double a4,
+                            double *x1, double *x2, double *x3, double *x4);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{a1}, \code{a2}, \code{a3}, \code{a4} & input: coefficients of $x^4 +
+    a_1x^3 + a_2x^2 + a_3x + a_4 = 0$ \\
+    \code{x1}, \code{x2}, \code{x3}, \code{x4} & output: pointers to roots of equation \\
+    \hline
+    \multicolumn{2}{c}{return: 0 if 4 real roots found, 1 otherwise} \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+\begin{verbatim}
+void polyFindRealRoots(int nDegree, double dCoefs[], double dRoots[],
+                       int *nRealRoots);
+\end{verbatim}
+
+\begin{flushleft}
+  \begin{tabular}{rl}
+    \hline
+    \code{nDegree} & input: degree of polynomial ($n - 1$) \\
+    \code{dCoefs} & input: coefficients of $a_0 + a_1 x + a_2 x^2 +
+    \cdots + a_{n-1} x^{n-1} = 0$ \\
+    \code{dRoots} & output: real roots of equation \\
+    \code{nRealRoots} & output: pointer to number of real roots \\
+    \hline
+  \end{tabular}
+\end{flushleft}
+
+These functions find real roots of polynomials with real coefficients.
+For the quadratic solver, if no real roots are found, the contents of
+\code{x1} and \code{x2} are not altered; otherwise, the roots are
+ordered such that $x_1 \le x_2$.  For the cubic solver, if only 1 real
+root is found, it is stored in \code{x1} and the contents of the other
+pointers are unaltered.  For the quartic solver, only a few special
+cases will result in 4 real roots; if \code{a4} is 0, \code{x1} will
+contain 0, and a cubic will be solved for the remaining roots.
+Finally, the general root finder, \code{polyFindRealRoots()}, uses the
+macro \code{EPS} defined near the top of \code{polyroots.c} to
+determine whether a root is real or not, the condition being that the
+magnitude of the imaginary part is less than or equal to the magnitude
+of the real part.  The standalone test queries the user for an
+equation to solve, calls the applicable functions, and times the
+general approach, which also finds complex roots.  Try solving $x - 1
+= 0$, $x^2 - 3 x + 2 = 0$, \ie $(x - 1)(x - 2) = 0$ (roots 1, 2), $x^3
+- 6 x^2 + 11 x - 6 = 0$ (roots 1, 2, 3), $x^4 - 10 x^3 + 35 x^2 - 50
+x + 24$ (roots 1, 2, 3, 4), etc.
+
+\section{Random Number Generators (\code{random.c})}
+
+\noindent\underline{Synopsis}
+
+\begin{verbatim}
+#include <random.h>
+
+Ullong randReadUrandom(void);
+void randSeedGenerator(Ullong ullSeed);
+double randUniform(void);
+double randRayleigh(void);
+double randGaussian(void);
+double randPoisson(double dMean);
+\end{verbatim}
+
+These functions provide random samples from various distribution
+functions.  Here \code{Ullong} is \code{uint64\_t} from
+\code{stdint.h}, \ie an \code{unsigned long long} type (requires C99
+standard or later).  A brief description of each function follows.
+
+\subsection{\code{randReadUrandom(void)}}
+
+Returns a pseudo-random 64-bit integer by reading from the device
+\code{/dev/urandom}, which is a handy way of seeding the generators
+(but too slow for other purposes).  Random bytes are generated in
+\code{/dev/urandom} based on the operation of the computer’s devices,
+including keyboard and mouse use, and timings driven by disk access.
+These sources are said to have ``high entropy'' but they are still not
+as truly random as, say, clicks on a geigercounter.
+
+\subsection{\code{randSeedGenerator(Ullong ullSeed)}}
+
+Seeds the random number generator using the provided 64-bit integer.
+The \nr\ generator is one of their own devising.  The \gsl\ generator
+is a Mersenne Twister (specifically, MT19937).
+
+\subsection{\code{randUniform(void)}}
+
+Returns a uniformly distributed random double-precison deviate between
+0 (inclusive) and 1 (exclusive).  Be sure to seed the generator first.
+
+\subsection{\code{randRayleigh(void)}}
+
+Returns a Rayleigh-distributed random double-precision deviate $x$
+with unit scale parameter $\sigma$, where the probability density
+function
+\begin{displaymath}
+  p(x) = \frac{x}{\sigma^2} e^{-x^2/(2\sigma^2)},\ x \ge 0.
+\end{displaymath}
+Just multiply the deviate by $\sigma$ to scale it as desired.
+
+\subsection{\code{randGaussian(void)}}
+
+Returns a normal-distributed (Gaussian) random double-precision
+deviate $x$ with zero mean $\mu$ and unit variance $\sigma^2$:
+\begin{displaymath}
+  p(x) = \frac{1}{\sqrt{2 \pi \sigma^2}} e^{-\frac{(x - \mu)^2}{2
+      \sigma^2}} .
+\end{displaymath}
+Multiply the deviate by $\sigma$ and add $\mu$ to get the desired mean
+and variance.
+
+\subsection{\code{randPoisson(double dMean)}}
+
+Returns a Poisson-distributed random integer $k$ (cast to
+\code{double}) with the given mean $\mu$, where the probability of
+observing $k$ events is given by:
+\begin{displaymath}
+  p(k) = \frac{\mu^k}{k!} e^{-\mu},\ k \ge 0.
+\end{displaymath}
+
+\end{document}

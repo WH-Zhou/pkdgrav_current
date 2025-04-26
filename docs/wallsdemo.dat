@@ -1,0 +1,23 @@
+defaults
+  transparency 1
+
+wall type plane
+
+wall type disk # or disc
+  origin -1 0 0.2
+  radius 0.5
+
+wall type cylinder-finite
+  origin -0.5 1 0.5
+  radius 0.2
+  length 0.8
+
+wall type shell
+  origin 0.5 1 0.4
+  radius 0.3
+  open-angle 90
+
+wall type rectangle
+  origin 0.5 0 0.2
+  vertex1 0.6 0.6 0
+  vertex2 0.6 -0.6 0

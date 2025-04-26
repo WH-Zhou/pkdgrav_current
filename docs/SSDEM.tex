@@ -1,0 +1,496 @@
+\input{preamble}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\begin{flushleft}
+
+\huge{SSDEM Documentation}\\
+\bigskip\bigskip
+\Large{Last Update: 7/7/20}\\
+\bigskip\bigskip
+\large{Started By: Derek C. Richardson}\\
+\bigskip
+\large{Contact Info:}\\
+Department of Astronomy\\
+University of Maryland\\
+College Park MD 20742\\
+Tel: 301-405-8786\\
+E-mail: \texttt{dcr@astro.umd.edu}
+
+\end{flushleft}
+
+\tableofcontents
+
+\section{OVERVIEW}
+
+This is brief and incomplete documentation of the soft-sphere discrete
+element method (SSDEM) implementation in \pkd.
+
+\subsection{Other Documentation}
+
+For documentation of walls in \pkd, see \code{walls.pdf}.
+
+For documentation of \code{ssio.py}, a utility for reading and writing
+binary \code{ss} files in \code{python}, see \code{ssio\_py.pdf}.
+
+There is an SSDEM tutorial at \code{https://goo.gl/NIYJ5z} (or email
+\code{dcr@astro.umd.edu}).
+
+\section{USING A FIXED SEARCH BALL}
+
+This section describes how to properly use the \code{DEM\_FIXED\_BALL}
+compilation option, which can significantly reduce the time required
+to run a simulation (depending on the circumstances). We first give an
+introduction to the function and behavior of a search ball, then give
+a description of the default dynamically generated search ball, and,
+finally, describe the different fixed search ball options.
+
+\textbf{If you already know which search ball option you want to use,
+  simply read the first three lines of the sub-section of that option
+  to understand what changes are required for proper use.}
+
+\textbf{WARNING: Problems can occur with certain scenarios using a
+  fixed search ball, such as a rubble pile asteroid flying by a
+  planet.  In this case, the search ball will be huge (the size of the
+  planet), so all the smaller particles will include each other in
+  their search balls.  This can cause a parallel run to crash without
+  warning due to a memory overflow.  In those cases, if the large
+  particle is not intended to collide with the smaller ones, consider
+  setting its radius to something much smaller.}
+
+\subsection{Introduction}
+
+In \code{pkdgrav}, each particle maintains a list of its nearest
+neighbors in order to check for potential colliders. Rather than
+performing a collision check for each other particle in a simulation,
+which would take $N^2$ time, a particle only performs a collision
+check on its nearest neighbors. The number of nearest neighbors that a
+particle has to search for in order to effectively determine whether
+it is in overlap with another particle largely depends on its size
+with respect to other particles. For equal-sized particles, the
+theoretical maximum number of neighbors that a single particle may be
+in contact with is 12. (Note: this is only true if the particles are
+``just touching'' and not overlapping significantly.) In general, for
+a size distribution of particles, the maximum number of overlaps that
+a single particle may experience is given by,
+\begin{equation}
+  \mathrm{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} = 8 + 4 \left(
+  \frac{R_{\mathrm{max}}}{R_{\mathrm{min}}} \right)^2
+  , \label{e:maxovlp}
+\end{equation}
+where $R_{\mathrm{max}}$ and $R_{\mathrm{min}}$ are the maximum and
+minimum particle radii in the simulation, respectively. The value of
+\code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} is defined in the header file
+\code{dem.h}.
+
+Of vital importance to detecting neighbors, and therefore particle
+contacts, is the use of a search ball by each particle. The search
+ball of a particle defines the limited region around it where it will
+look for nearest neighbors. In the default implementations of
+\code{pkdgrav} and \code{SSDEM}, the search ball is dynamically
+constructed each time step. Years of practical use of the codes have
+shown that this might not be the most efficient way to find nearest
+neighbors. Therefore, methods that generate a fixed search ball for
+each particle make the code run faster as the search ball does not
+need to be re-constructed each time-step. Three different fixed search
+ball strategies were implemented in order to speed up processing time
+and ensure proper neighbor finding for certain \code{pkdgrav}
+scenarios. We outline these methods below, and best practices for
+using them. First, we provide more context by reviewing the default
+dynamic search ball method.
+
+\subsection{Dynamic Search Ball}
+
+For the default compilation of SSDEM, a particle's search ball is
+dynamically set. The generation of the search ball is linked with the
+partitioning of space into sub-domains and the building of the k-d
+tree. A particle's search ball is thusly defined by the local number
+density of particles.
+
+For this dynamically generated search ball, the number of nearest
+neighbors that each particle needs to keep track of is set by the
+\code{nSmooth} parameter defined in the run-time parameter file
+(\code{ss.par}). The value of \code{nSmooth} should be set, similar to
+\eqn{maxovlp}, as,
+\begin{equation}
+  \mathrm{nSmooth} = 8 + 4 \left(
+  \frac{R_{\mathrm{max}}}{R_{\mathrm{min}}} \right)^2
+  . \label{e:nsmooth}
+\end{equation}
+This ensures that a small particle is able to detect the presence of a
+larger particle in its vicinity. However, for a dynamic search ball,
+\code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} can be set to the theoretical
+limit of 12 if the particles in the input file are size-sorted in
+\emph{increasing} order. Size-sorting in increasing order allows the
+smallest particle to first resolve any overlap conditions and apply
+the necessary forces on itself and its larger collisional partners (by
+applying Newtown's second law of motion). The collision algorithm then
+progresses to the next largest particle. This next particle only looks
+for collisions with particles larger than itself (since any collision
+with smaller particles have already been calculated); hence, it too
+only needs to look for 12 or fewer contacts. The algorithm progresses
+through the list of particles. The largest particle need not look for
+contacts as the forces from smaller particles have already been
+calculated.
+
+The advantage of using this search ball option is that it is general,
+and its low memory use (only 12 colliders ever need to be stored into
+memory). The disadvantage to this method is that the search ball needs
+to be regenerated every time step, and, for a very large size
+difference in particles, each particle will have to loop through
+\code{nSmooth} nearest neighbors to check for overlaps. These two
+factors require a lot of processing time, and poorly scale with total
+number of particles.
+
+\subsection{Fixed Search Ball}
+
+By compiling \code{pkdgrav} with the \code{DEM\_FIXED\_BALL}
+compilation option turned on, each particle will have a fixed search
+ball to look for nearest neighbors. The most obvious advantage of a
+fixed search ball is that processors spend less time re-computing
+search balls each time step. The cost of using a fixed search ball is
+larger memory requirements for certain cases. There are three options
+for defining the size of the fixed search ball, controlled by the
+\code{iFixedBallOption} defined in \code{ss.par}. These options are
+described below.
+
+\subsubsection{Maximum Diameter}
+
+To use this option:
+\begin{enumerate}
+  \item Set \code{iFixedBallOption} to 0 in ss.par.
+  \item Size-sort particles in increasing order.
+  \item Set \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} = 12.
+\end{enumerate}
+This option sets the radius of each search ball to the diameter of the
+largest particle. This option is optimal for equal-size particles, or
+a size distribution of particles with a relatively small size ratio
+($\frac{R_{\mathrm{max}}}{R_{\mathrm{min}}} \lesssim 3$). The
+advantage of this option is the speed-up in having a fixed search
+ball, while maintaining a relatively small memory requirement.
+
+\subsubsection{Particle Radius $+$ Mean Radius}
+
+To use this option:
+\begin{enumerate}
+  \item Set \code{iFixedBallOption} to 1 in ss.par.
+  \item Size-sort particles in decreasing order.
+  \item Use \eqn{maxovlp} to set
+    \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE}.
+\end{enumerate}
+With this option, the radius of each particle's search ball is set to
+its own radius plus the mean radius of all particles. This allows each
+particle to have a unique search ball that depends on its own
+size. This option is especially useful for scenarios where a single
+very large particle interacts with a large number of small particles
+(of roughly equal size). This allows the large particle to efficiently
+detect all the small particles as nearest neighbors, while also
+limiting the size of the small particles search ball. This reduces the
+number of nearest neighbors that each particle needs to check for
+overlaps. However, the disadvantage is the large memory
+requirement. Each particle needs to carry around an overlap list that
+can contain \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} number of
+particle IDs.
+
+\subsubsection{Particle Radius $+$ Next-largest Particle Radius}
+
+To use this option:
+\begin{enumerate}
+  \item Set \code{iFixedBallOption} to 2 in ss.par.
+  \item Size-sort particles in decreasing order.
+  \item Use \eqn{maxovlp} to set
+    \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE}.
+\end{enumerate}
+With this option, the radius of each particle's search ball is set to
+its own radius plus the radius of the next-largest particle. This
+option is useful when there is a large and continuous size
+distribution of particles, or in the case of a single large intruder
+interacting with a continuous size distribution of particles. This
+optimizes the number of nearest neighbors a particle needs to check
+for overlaps. The disadvantage is the large memory requirements.
+
+\subsection{Sorting Particles by Radius}
+
+Several utilities order particles in \code{ss} files by radius.  The
+\code{ssgen} utility generates initial conditions that are
+automatically saved in increasing radius order (or in decreasing order
+with the \code{-v} option).  The \code{rpx} utility can be used to
+sort an existing \code{ss} file by invoking the \code{-s} option (use
+\code{rpx -h} to get a list of options).  Otherwise, particle data can
+be altered manually by converting to \code{bt} files (see tutorial) or
+by using the \code{ssio.py} script (see documentation).
+
+\subsection{Search Ball Fudge Factor}
+
+As a precaution, the routine that sets the search ball
+(\code{dem.c:pkdDEMSetBall()}) includes a fudge factor
+``\code{epsilon}'' (currently set to \code{0.1}) that is used when
+calculating the search ball radius. Mathematically, this is how it is
+applied for the three cases:
+\begin{eqnarray*}
+  0:\ R_{\mathrm{ball}} & = & R_{\mathrm{max}} + (1 + \epsilon) R_{\mathrm{max}} \\
+  1:\ R_{\mathrm{ball}} & = & R_i + (1 + \epsilon) \bar{R} \\
+  2:\ R_{\mathrm{ball}} & = & R_i + (1 + \epsilon) R_{i+1}
+\end{eqnarray*}
+(In the last case, it is assumed the file is in decreasing size order;
+$R_{N+1}$ is just set to $R_N$.)
+
+The utility \code{ssn}, which generates neighbor lists from \code{ss}
+files, includes the three fixed-search-ball options above and has a
+configurable fudge factor.  The utility can also be used to flag
+particle overlaps that are detected within the search radius.
+
+\section{RESTARTS WITH SSDEM} \label{s:restarts}
+
+In SSDEM, particles keep track of overlaps (contacts) with other
+particles (and walls, if applicable), but this information is not
+stored in \code{ss} files or checkpoints.  Instead, special
+\code{.dem} files are generated every full \code{ss} output, and these
+can be used for clean restarts.  (In fact, checkpointing is disabled
+altogether when running \pkd\ with SSDEM.)
+
+To restart a simulation from a full \code{ss} output with a
+corresponding \code{.dem} file, use the following procedure:
+\begin{enumerate}
+\item Set \code{achInFile} in \code{ss.par} (or equivalent
+  \pkd\ parameter file) to the \code{ss} output that will be used, \eg
+  \code{ss.01000}.
+\item Change \code{iStartStep} to the timestep of the output (1000 in
+  this example).
+\item Set \code{bReadDEMData} to 1.
+\item Rerun with the \code{+overwrite} option.
+\end{enumerate}
+Note that for this procedure the following preprocessor macros cannot
+be changed between restarts:
+\begin{itemize}
+\item \code{USE\_WALLS}.
+\item \code{USE\_DEM\_ROTATION\_DASHPOT}.
+\item \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} (in \code{dem.h}).
+\item \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE\_FOR\_WALLS} (in
+  \code{dem.h}).
+\end{itemize}
+Generally speaking, any changes to run parameters should also be
+considered carefully to avoid any inconsistencies on restarts.  This
+includes changing the number or order of walls, if applicable.
+
+The frequency of outputting \code{.dem} files is set by the
+\code{iOutInterval} parameter.  The \code{.dem} files are big, so you
+can limit how many are kept using the \code{nDEMOutputs} parameter
+(the default is 1, corresponding to keeping only the latest
+\code{.dem} file).
+
+\subsection{Format of \code{.dem} Files}
+
+A \code{.dem} file is a binary file consisting of a header with the
+following ordered information:
+\begin{itemize}
+\item Time (double).
+\item Number of particles (integer).
+\item \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} (integer).
+\item \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE\_FOR\_WALLS} (integer;
+  $-1$ if \code{WALLS} is not defined).
+\item Rotation dashpot flag (integer; 1 if
+  \code{DEM\_ROTATION\_DASHPOT} is defined, 0 otherwise).
+\end{itemize}
+This is followed by an ordered data record, one for each
+particle, of format:
+\begin{itemize}
+\item Predicted velocity (vector).
+\item Predicted spin (vector).
+\item \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} repetitions of:
+  \begin{itemize}
+  \item \code{iOrder} of overlapping particle (integer; $-1$ if none).
+  \item Tangential displacement (shear) from initial contact (vector).
+  \item Previous contact normal (vector).
+  \item If \code{DEM\_ROTATION\_DASHPOT} defined:
+    \begin{itemize}
+    \item Rolling angular displacement (vector).
+    \item Twisting scalar displacement (double).
+    \end{itemize}
+  \item Overlap counter (4-byte integer).
+  \end{itemize}
+\item If \code{WALLS} defined,
+  \code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE\_FOR\_WALLS} repetitions of:
+  \begin{itemize}
+  \item ID of overlapping wall (integer; $-1$ if none).
+  \item Tangential displacement (shear) from initial contact (vector).
+  \item Previous contact normal (vector).
+  \item If \code{DEM\_ROTATION\_DASHPOT} defined:
+    \begin{itemize}
+    \item Rolling angular displacement (vector).
+    \item Twisting scalar displacement (double).
+    \end{itemize}
+  \item Overlap counter (4-byte integer).    
+  \end{itemize}
+\end{itemize}
+Note this information is also given in the comments of
+\code{src/pkdgrav/dem.h} related to \code{DEMHEAD\_SIZE} and
+\code{DEMDATA\_SIZE}.
+
+\section{DIAGNOSTIC OUTPUTS}
+
+Currently there are 2 sets of diagnostics that can be generated for
+SSDEM runs.
+
+\subsection{SSDEM Statistics}
+
+At a frequency set by the \code{iDEMStatsInterval} parameter, basic
+SSDEM statistics can be output in \code{.demstats} files.  These are
+text files that contain a header describing their contents; in brief,
+the data stored include histograms of particle overlaps, overlap
+orientations (``$\cos{\alpha}$''), and tangential spring $\bvec{S}$
+magnitudes.  If \code{sm} and \code{ffmpeg} available, the file
+\code{demstats.sm} can be used to visualize the data; copy the file
+(from the \pkd\ \code{etc} directory) to the working directory and run
+the \code{demstatsanim} script.  This will generate snapshots of the
+histograms and stitch them together into 3 corresponding movies
+(\code{demstats\_ohist.mp4}, \code{demstats\_ohist.mp4}, and
+\code{demstats\_ohist.mp4}, respectively).
+
+Important: accumulated histogram data is lost on a restart.  Also,
+only particle-particle data is stored, not particle-wall.
+
+\subsection{SSDEM Forces}
+
+If \code{USE\_DEM\_DIAG} is defined in \code{Makefile.in}, at every
+full \code{ss} output a \code{.demdiag} file will be generated.  This
+is a text file with the following format:
+\begin{verbatim}
+N
+OP [ OW ]
+i1 Fnx Fny Fnz Ftx Fty Ftz i2 ... [ w1 Fnx Fny Fnz Ftx Fty Ftz w2 ... ]
+i1 ...
+...
+\end{verbatim}
+The first line gives the number of particles (\code{N}).
+\code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE} is encoded as \code{OP} on
+the second line, along with \code{OW} for
+\code{MAX\_NUM\_OVERLAPS\_PER\_PARTICLE\_FOR\_WALLS}, if applicable,
+in case these values change.  Each subsequent line (one per particle)
+gives a list of overlaps for each particle: \code{i1}, \code{i2},
+etc., are the \code{iOrder} numbers of the overlapped particles for
+that particle while \code{Fn} and \code{Ft} are the \code{x},
+\code{y}, \code{z} components of the normal and tangential forces due
+to that overlap, respectively; \code{w1}, \code{w2}, etc., are the
+wall id numbers (starting from 0) for wall overlaps (if
+\code{USE\_WALLS} is defined in \code{Makefile.in}), with
+corresponding force components as for particles.  There are \code{OP}
+particle overlap entries per particle and \code{OW} wall overlap
+entries per particle (see \code{dem.h}).
+
+Important: particles only store overlap information for particles of
+higher \code{iOrder} number.  For example, if particles 3 and 5 are
+overlapping, only particle 3 stores the information.  As a result,
+only particle 3 in the \code{.demdiag} file will contain information
+on the overlap with particle 5.  It is up to the user to reconstruct
+the overlap data for particle 5 due to particle 3 (which will be just
+the negative of the force components for particle 3 due to particle 5,
+by Newton's 3$^{\mathrm{rd}}$ law).
+
+\section{TRACKING SPHERE ORIENTATIONS}
+
+If \code{pkdgrav} is compiled with the \code{DEM\_TRACK\_ORIENT}
+option, the orientations of spherical particles will be tracked
+explicitly and stored in files for analysis and plotting.  If no
+initial orientations are specified (see \code{bReadOrient} parameter
+below), all particles are assumed to start with orientations aligned
+with the space axes.  Currently particles in aggregates or stuck to
+walls will not have orientations updated, and runs using
+\code{SLIDING\_PATCH} will not do the update properly (\ie the
+orientations will not account correctly for the rotating frame).
+Orientations are output to binary ``\code{.ori}'' files at both the
+full output (double precision) and reduced output (single precision)
+frequency.  The utilities \code{ori2ort} and \code{ort2ori} are
+provided to convert between binary (\code{.ori}) and text
+(\code{.ort}) representations.  The \code{.ort} files consist of 1
+particle per line in the following format:
+\begin{displaymath}
+  \centering
+  \begin{array}{llllll}
+    p_{1,x} & p_{1,y} & p_{1,z} & p_{2,x} & p_{2,y} & p_{2,z}
+  \end{array}
+\end{displaymath}
+where $\bhat{p}_i = (p_{i,x},p_{i,y},p_{i,z})$ is principal axis $i$
+of the orientation matrix, a unit vector.  Only $\bhat{p}_1$ and
+$\bhat{p}_2$ are stored because $\bhat{p}_3 = \bhat{p}_1 \cross
+\bhat{p}_2$ by virtue of the orientation matrix being orthonormal.  It
+might be possible to omit one more element, but the added overhead of
+reconstruction does not make this worthwhile.
+
+Because the particles have spherical symmetry, the Euler
+equations\footnote{\code{http://www.astro.umd.edu/$\sim$dcr/reprints/richardson\_icarus115,320.pdf}}
+are particularly simple to solve, with spin vectors updated during
+leapfrog kicks (as they were before this new feature) and orientations
+updated during drifts (with a call to \code{dem.c:demUpdateOrient()}).
+The torques that are used to update the spins are computed as normal
+in the DEM routines along with other forces.
+
+\subsection{Initial Conditions and Restarts}
+
+If the \code{bReadOrient} parameter has a non-zero value,
+\code{pkdgrav} will read the \code{.ori} file associated with
+\code{achInFile} on start-up (\eg if the input file is
+\code{ss.12345}, \code{pkdgrav} will look for \code{ss.12345.ori}).
+This file must be in standard format (not reduced).  This can be used
+to give the particles a particular orientation at the start (see the
+format above), or for restarts (\sect{restarts}).
+
+\subsection{Drawing Sphere Orientations}
+
+If invoked with the \code{-o} option, \code{ssdraw} will read the
+orientation (\code{.ori}) files associated with each \code{ss} file
+and apply the appropriately rotated \code{StyleOrient} texture (in
+\code{povray.inc}).  This only works for \code{POV-Ray} output.  A few
+patterns are provided in the template \code{povray.inc} file (located
+in the \code{pkdgrav} \code{etc} folder), though currently only 1
+pattern can be chosen at a time, which is applied to all particles.
+Transparency specified in the pattern pigment can be used to bring out
+the underlying particle color.  To make a movie with particle
+orientations, use \code{mkmov.py -o}.
+
+\subsection{Future Updates}
+
+\begin{enumerate}
+\item Add support for \code{AGGS}, sticky walls, and
+  \code{SLIDING\_PATCH}.
+  \begin{itemize}
+  \item For \code{AGGS}, the particle orientation could be transformed
+    to the aggregate body frame and frozen in until the inertia tensor
+    changes (due to adding or removing of particles). Transform back
+    to the space frame for output.
+  \item For sticky walls, the particle orientation for reactive walls
+    could be treated the same as for \code{AGGS}, while for
+    non-reactive walls the needed transformation can be computed
+    within \code{ssdraw}.
+  \item For \code{SLIDING\_PATCH}, it is necessary to account for the
+    rotating frame. Code to do that for the particle spins is already
+    in \code{pkdgrav}; that code could be leveraged to also update the
+    particle orientations, in principle.
+  \end{itemize}
+\end{enumerate}
+  
+\section{OTHER SSDEM NOTES}
+
+\subsection{Softening}
+
+In its original incarnation, \code{pkdgrav} used softening to prevent
+interparticle forces from getting arbitrarily large during a close
+encounter.  With \code{COLLISIONS}, the softening radius is set equal
+to the particle radius, largely because the two concepts are
+considered mutually exclusive so the same particle data structure
+element could be used for both (see the \code{RADIUS} macro in
+\code{collision.h}).  In \code{HSDEM}, this works well because
+particles are not supposed to interpenetrate.  But in \code{SSDEM},
+particles are allowed to interpenetrate, and this determines the
+restoring and friction forces.  This means that in simulations where
+particles experience self-gravity (say a self-gravitating rubble
+pile), gravity forces will be softened when particles overlap.  In
+practice this should be a small effect, since overlaps are meant to be
+kept below 1\% of the smallest particle radius, but if this condition
+is relaxed, or extreme fidelity is needed for some reason, the
+softening would need to be taken into account (and may necessitate a
+new scheme, such as making the particle radius twice the softening
+radius, etc.).
+
+\end{document}

@@ -1,0 +1,4 @@
+lengthunit 6.68449197860962566845e-14 # 1 cm in AU
+defaults epsn 0.2 epst 0.2
+wall type plane origin 0 0 -1
+wall type shell origin 0 0 15 radius 15 open-angle 90

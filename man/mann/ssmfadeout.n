@@ -1,0 +1,26 @@
+.TH ssmfadeout n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssmfadeout \- Creates fade-out PPM files from supplied PPM file.
+.SH SYNOPSIS
+ssmfadeout [-n \fInumber-of-frames\fP] \fIppm-file\fP
+.SH DESCRIPTION
+You can "fade out" to a PPM frame using this utility.  Successively
+dimmer versions of the frame are generated in a linear progression
+from full brightness to black.  The more images generated, the slower
+the dimming.  The output filenames are constructed from the input
+basename by appending "fo####.ppm", where #### is the fade-out frame
+number, starting from 0000.
+.SH OPTIONS
+.IP "-n \fInum\fP"
+Generate \fInum\fP frames (default 30).
+.SH SEE ALSO
+ssmfadein(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

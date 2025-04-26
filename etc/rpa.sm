@@ -1,0 +1,717 @@
+define ps 0			# device: 0=X11, 1=postencap
+define color 1			# color toggle
+define use_grid 1		# toggle for grid drawing
+define do_gpe 0			# toggle for reading ssgetgpe.out file
+define n_points_max 200		# plot points if fewer than this
+define override_time 0		# to assume dimensionless linear monotonic time
+#
+define data_file "rpa.out"	# main data file
+#
+define AU 1.49597870e11		# Astronomical unit (m)
+define Ms 1.9891e30		# Solar mass (kg)
+define SY 3.15581497632e7	# Sidereal year (s)
+define G 6.672e-11		# Gravitational constant (mks units)
+#
+# following constants no longer used...
+#
+define gauss_k 0.01720209895	# Gaussian gravitational constant
+define JD 86400.0		# One Julian Day (JD) in seconds (s)
+#
+define m_scale ($Ms)
+define l_scale ($AU)
+define t_scale (0.5*$SY/PI)	# was $JD/$gauss_k
+define v_scale ($l_scale/$t_scale)
+define w_scale (3600/$SY)
+define d_scale ($m_scale/$l_scale**3)
+#
+define TeX_strings 1
+define verbose 0
+#
+location $($gx1 + 1000) $gx2 $gy1 $gy2
+#
+if ($ps) {
+	define use_cursor 0
+	define yellow magenta
+	lweight 3
+} else {
+	define yellow yellow
+}
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+macro time_label {
+	if ($override_time) {
+		xlabel Dimensionless Time
+	} else {
+		xlabel Time t (JD)
+	}
+}
+#
+macro draw_grid {
+	if ($color) {ctype cyan} # override color flag
+	ltype 1
+	grid
+	ltype 0
+	if ($color) {ctype default}
+}
+#
+macro new_limits 15 { # x-var sym-flag y-var1 [ y-var2 [ y-var3 ] ]
+	if ($2) {
+		set _a1 = abs($3)
+		if ($?4) {set _a2 = abs($4)}
+		if ($?5) {set _a3 = abs($5)}
+	} else {
+		set _a1 = $3
+		if ($?4) {set _a2 = $4}
+		if ($?5) {set _a3 = $5}
+	}
+	set _amin = _a1
+	set _amax = _a1
+	if ($?4) {
+		if (!$2) {set _amin = (_a1 < _a2 ? _a1 : _a2)}
+		set _amax = (_a1 > _a2 ? _a1 : _a2)
+	}
+	if ($?5) {
+		if (!$2) {set _amin = (_amin < _a3 ? _amin : _a3)}
+		set _amax = (_amax > _a3 ? _amax : _a3)
+	}
+	if ($2) {
+		set _a = _amax
+	} else {
+		set _a = _amin concat _amax
+	}	
+	if (dimen(_a) == 0) {return}
+	vecminmax _a vmin vmax
+	if ($2) {
+		define _dv (2*$vmax)
+	} else {
+		define _dv ($vmax - $vmin)
+	}
+	define vmax ($vmax + 0.05*$_dv)
+	if ($2) {
+		define vmin (- $vmax)
+	} else {
+		define vmin (-0.05*$_dv)
+	}
+	limits $1 $vmin $vmax
+	foreach _v (_a1 _amin _amax _a _dv) {delete $_v}
+	if ($?4) {delete _a2}
+	if ($?5) {delete _a3}
+}
+#
+macro hist_limits 14 { # x-var n-bins [ x-min [ x-max ] ]
+	# note: n-bins < 0 ==> integer bins
+	if ($?3) {
+		define vmin ($3)
+		if ($?4) {
+			define vmax ($4)
+		} else {
+			vecminmax $1 _dum vmax
+			delete _dum
+		}
+	} else {
+		vecminmax $1 vmin vmax
+	}
+	if ($2 > 0) {
+		define w (($vmax - $vmin)/$2)
+	} else {
+		define w (- $2)
+	}
+	set b = $vmin,$vmax,$w
+	set h = histogram($1:b)
+	vecminmax h vmin vmax
+	define vmin (- 0.05*$vmax)
+	define vmax (1.05*$vmax)
+	limits b $vmin $vmax
+}
+#
+macro wlsq 5 { # x y e x2 y2 (weighted lsq)
+	set _w = 1/($3*$3)	# weights (1 over uncertainty squared)
+	set _S = sum(_w)
+	set _Sx = sum($1*_w)
+	set _Sy = sum($2*_w)
+	set _Sxx = sum($1*$1*_w)
+	set _Sxy = sum($1*$2*_w)
+	set _D = _S*_Sxx - _Sx*_Sx
+	define a ((_S*_Sxy - _Sx*_Sy)/_D)
+	define b ((_Sxx*_Sy - _Sx*_Sxy)/_D)
+	define da (sqrt(_S/_D))
+	define db (sqrt(_Sxx/_D))
+	set $5 = $a*$4 + $b
+	foreach _v (_w _S _Sx _Sy _Sxx _Sxy _D) {delete $_v}
+}
+#
+macro int_xticks 1 { # x-var
+	vecminmax $1 vmin vmax
+	if ($vmin == 1) {
+		define _bt (int($vmax/5) + 1)
+		ticksize 1 $_bt 0 0
+		delete _bt
+	}
+}
+#
+macro int_yticks 1 { # y-var
+	vecminmax $1 vmin vmax
+	if ($vmin == 1) {
+		define _bt (int($vmax/5) + 1)
+		ticksize 0 0 1 $_bt
+		delete _bt
+	}
+}
+#
+macro x_fiducial 3 { # x-var y-pos color
+	vecminmax $1 xmin xmax
+	relocate $xmin $2
+	ltype 3
+	if ($color) {ctype $3}
+	draw $xmax $2
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro y_fiducial 3 { # y-var x-pos color
+	vecminmax $1 ymin ymax
+	relocate $2 $ymin
+	ltype 3
+	if ($color) {ctype $3}
+	draw $2 $ymax
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro stats_plot 3 { # direction(0=x,1=y) abscissa ordinate
+	stats $2 _avg _std _kur
+	if ($1) {y_fiducial $3 $_avg cyan} else {x_fiducial $3 $_avg cyan}
+	if ($color) {ctype cyan}
+	limits 0 1 0 1
+	round $_avg 2 _avg
+	round $_std 1 _std
+	relocate 0.6 0.9
+	label mean = $_avg \pm\ $_std
+	if ($color) {ctype default}
+	foreach _v (_avg _std _kur) {delete $_v}
+}
+#
+macro round 3 { # scalar num-sig-figs output
+	if ($1 == 0) {
+		define $3 0
+		return
+	}
+	define _lx (lg(abs($1)))
+	if ($_lx >= 0) {
+		define _lx (int($_lx))
+	} else {
+		if ($_lx - int($_lx) < 0) {
+			define _lx (int($_lx - 1))
+		} else {
+			define _lx 0
+		}
+	}
+	define _x ($1/10**$_lx)
+	define _x (int($_x*10**($2 - 1))/10**($2 - 1 - $_lx))
+	define $3 ($_x)
+	delete _x
+	delete _lx
+}
+#
+macro new_label 6 { # ltype ctype x-pos y-pos width label
+	limits 0 1 0 1
+	ltype $1
+	if ($color) {ctype $2}
+	relocate $3 $4
+	define _x0 ($3 + $5)
+	draw $_x0 $4
+	ltype 0
+	define _x0 ($_x0 + 0.25*$5)
+	define _y0 ($4 - 0.005) # minor adjustment
+	relocate $_x0 $_y0
+	label {$6} # {}'s force correct font
+	if ($color) {ctype default}
+	delete _x0
+	delete _y0
+}
+#
+macro new_connect 2 {
+	if (dimen($1) < $n_points_max) {
+		define _oe ($expand)
+		define _ne (2*$expand)
+		define _ol ($ltype)
+		expand $_ne
+		ltype 0
+		points $1 $2
+		ltype $_ol
+		expand $_oe
+		delete _ol
+		delete _ne
+		delete _oe
+		}
+	connect $1 $2
+}
+#
+macro display 3 {
+	define _f ($2[$n0]) # n0 must be defined
+	vecminmax $2 _v1 _v2
+	if ($_v1 == $_v2) {
+		define _a $_f
+		define _e 0
+	} else {
+		stats $2 _a _e _x
+	}
+	delete _v2
+	delete _v1
+	echo $1" = "$_f" "$3" (avg "$_a" +/- "$_e")"
+	delete _x
+	delete _e
+	delete _a
+	delete _f
+}
+#
+if ($ps == 0) {dev x11 -bg black -geom 800x800+0+0}
+#
+expand 1.001
+ptype 4 1
+#
+# Summary...
+#
+data $data_file
+#
+echo Reading summary...
+read {t 1 s 2 r 3 v 4 w 5}
+if ($override_time && dimen(t) > 1) {
+	set t = 0,dimen(t)-1,1
+	set t = t/(dimen(t)-1)
+}
+#
+echo Reading data for largest group...
+read {m_max 6 v_max 7 wx_max 8 wy_max 9 wz_max 10}
+read {es_max 11 ri_max 12 am_max 13 ke_max 14}
+read {ax_max 15 ay_max 16 az_max 17 den_max 18}
+#
+echo Reading group stats...
+read {n1 19 n2 20 n 21 m1 22 m2 23 m 24 vd1 25 vd2 26 vd 27}
+read {m_acc 28 m_orb 29 m_esc 30}
+#
+set q2 = ay_max/ax_max
+set q3 = az_max/ax_max
+set e = 1 - 0.5*(q2 + q3)
+set m_total = m1 + m2 + m
+#
+# Unit conversions...
+#
+if (!$override_time) {set t = t*$t_scale/$JD}
+set s = s/s[0]
+set r = r*0.001*$l_scale
+set v = v*$v_scale
+set w = w*$w_scale
+set m_max = m_max/m_total
+set v_max = v_max*$v_scale
+set wx_max = wx_max*$w_scale
+set wy_max = wy_max*$w_scale
+set wz_max = wz_max*$w_scale
+set es_max = es_max*$w_scale
+set am_max = am_max*$m_scale*$l_scale*$v_scale # kg m^2/s
+set ke_max = ke_max*$m_scale*$v_scale**2 # J
+set ax_max = ax_max*0.001*$l_scale
+set ay_max = ay_max*0.001*$l_scale
+set az_max = az_max*0.001*$l_scale
+set den_max = den_max*0.001*$d_scale
+set m1 = m1/m_total
+set m2 = m2/m_total
+set m = m/m_total
+set vd1 = vd1*$v_scale
+set vd2 = vd2*$v_scale
+set vd = vd*$v_scale
+set m_acc = m_acc/m_total
+set m_orb = m_orb/m_total
+set m_esc = m_esc/m_total
+#
+set w_max = sqrt(wx_max**2 + wy_max**2 + wz_max**2)
+#
+define n0 (dimen(t) - 1)
+define x (t[$n0])
+echo Final stats (at time t = $x JD):
+display "Maximum expansion" s "times" 
+display "Bary. distance" r "km"
+display "Bary. speed" v "m/s"
+display "Bary. spin" w "1/h"
+echo Final stats of biggest rubble pile:
+display "Mass" m_max "* total"
+display "X-spin" wx_max "1/h"
+display "Y-spin" wy_max "1/h"
+display "Z-spin" wz_max "1/h"
+display "Effective spin" es_max "1/h"
+display "Rotation index" ri_max ""
+display "Ang. mom. mag." am_max "kg m^2/s"
+display "Kinetic energy" ke_max "J"
+display "Major axis" ax_max "km"
+display "Middle axis" ay_max "km"
+display "Minor axis" az_max "km"
+display "Density" den_max "g/cc"
+echo Final grouping stats:
+display "1-particle" n1 "groups"
+display "2-particle" n2 "groups"
+display "Rubble piles" n "groups"
+display "1-particle mass" m1 "* total"
+display "2-particle mass" m2 "* total"
+display "Rubble piles mass" m "* total"
+display "1-particle vel. disp." vd1 "m/s"
+display "2-particle vel. disp." vd2 "m/s"
+display "Rubble piles vel. disp." vd "m/s"
+display "Accreting mass" m_acc "* total"
+display "Orbiting mass" m_orb "* total"
+display "Escaping mass" m_esc "* total"
+#
+if ($ps) {dev postencap rpa_s.ps}
+vecminmax s vmin vmax
+if ($vmax/$vmin > 100) {
+	set ls = lg(s)
+	ticksize 0 0 -1 10
+} else {
+	set ls = s
+}
+limits t ls
+box
+if ($use_grid) {draw_grid}
+time_label
+ylabel Maximum Expansion
+if ($color) {ctype $yellow}
+new_connect t ls
+if ($color) {ctype default}
+ticksize 0 0 0 0
+next
+#
+if ($ps) {dev postencap rpa_rvw.ps}
+expand 0.8
+window 1 -3 1 3
+limits t r
+box 0 2 0 0
+ylabel Barycentre Distance (km)
+if ($color) {ctype red}
+new_connect t r
+if ($color) {ctype default}
+window 1 -3 1 2
+limits t v
+box 0 2 0 0
+ylabel Barycentre Speed (m s^{-1})
+if ($color) {ctype green}
+new_connect t v
+if ($color) {ctype default}
+window 1 -3 1 1
+limits t w
+box
+time_label
+ylabel Bulk Spin (h^{-1})
+if ($color) {ctype blue}
+new_connect t w
+if ($color) {ctype default}
+expand 1.001
+window 1 1 1 1
+next
+#
+if ($ps) {dev postencap rpa_mvd.ps}
+expand 0.8
+window 1 -3 1 3
+limits t m_max
+box 0 2 0 0
+ylabel Mass (M_{total})
+if ($color) {ctype red}
+new_connect t m_max
+if ($color) {ctype default}
+window 1 -3 1 2
+limits t v_max
+box 0 2 0 0
+ylabel Speed (m s^{-1})
+if ($color) {ctype green}
+new_connect t v_max
+if ($color) {ctype default}
+window 1 -3 1 1
+limits t den_max
+box
+time_label
+ylabel \rho_{bulk} (g cm^{-3})
+if ($color) {ctype blue}
+new_connect t den_max
+if ($color) {ctype default}
+expand 1.001
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.15 1.03
+label Mass, Speed, and Bulk Density of Largest Rubble Pile
+next
+#
+if ($ps) {dev postencap rpa_aw.ps}
+expand 0.8
+#
+window 2 2 1 2
+new_limits t 0 ax_max ay_max az_max
+box
+time_label
+ylabel Axis Lengths a_1, a_2, a_3 (km)
+if ($color) {ctype red}
+new_connect t ax_max
+if ($color) {ctype green}
+new_connect t ay_max
+if ($color) {ctype blue}
+new_connect t az_max
+if ($color) {ctype default}
+#
+window 2 2 2 2
+new_limits t 0 e q2 q3
+box
+time_label
+ylabel Axis Ratios q_2, q_3, \varepsilon
+if ($color) {ctype red}
+new_connect t e
+if ($color) {ctype green}
+new_connect t q2
+if ($color) {ctype blue}
+new_connect t q3
+if ($color) {ctype default}
+#
+window 2 2 1 1
+new_limits t 1 wx_max wy_max wz_max
+box
+time_label
+ylabel Spin Components \omega_x, \omega_y, \omega_z (h^{-1})
+if ($color) {ctype red}
+new_connect t wx_max
+if ($color) {ctype green}
+new_connect t wy_max
+if ($color) {ctype blue}
+new_connect t wz_max
+if ($color) {ctype default}
+#
+window 2 2 2 1
+limits t w_max
+box
+time_label
+ylabel Spin Magnitude \omega\ (h^{-1})
+if ($color) {ctype $yellow}
+new_connect t w_max
+if ($color) {ctype default}
+#
+expand 1.001
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.2 1.03
+label Axis and Spin Stats for Largest Rubble Pile
+next
+#
+if ($ps) {dev postencap rpa_rot.ps}
+expand 0.8
+#
+window 1 -3 1 3
+limits t es_max
+box 0 2 0 0
+ylabel Effective Spin \omega_l (h^{-1})
+if ($color) {ctype $yellow}
+connect t es_max
+lsq t es_max t y
+echo Spin stats: eff. spin slope = $a
+if ($color) {ctype red}
+ltype 1
+connect t y
+ltype 0
+if ($color) {ctype default}
+#
+window 1 -3 1 2
+limits t ri_max
+box 0 2 0 0
+ylabel Rotation Index
+if ($color) {ctype $yellow}
+connect t ri_max
+lsq t ri_max t y
+echo Spin stats: rot. index slope = $a
+if ($color) {ctype red}
+ltype 1
+connect t y
+ltype 0
+if ($color) {ctype default}
+#
+window 1 -3 1 1
+limits t am_max
+box
+time_label
+ylabel Ang. Mom. Mag. H (kg m^2 s^{-1})
+if ($color) {ctype $yellow}
+connect t am_max
+lsq t am_max t y
+echo Spin stats: ang. mom. slope = $a
+if ($color) {ctype red}
+ltype 1
+connect t y
+ltype 0
+if ($color) {ctype default}
+#
+expand 1.001
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 Rotation Properties of Largest Rubble Pile
+next
+#
+if ($ps) {dev postencap rpa_energy.ps}
+expand 0.8
+#
+window 1 -3 1 3
+limits t ke_max
+if ($do_gpe) {
+	box 0 2 0 0
+} else {
+	box
+	time_label
+}
+ylabel Kinetic Energy T (J)
+if ($color) {ctype $yellow}
+connect t ke_max
+lsq t ke_max t y
+echo Energy stats: K.E. slope = $a
+if ($color) {ctype red}
+ltype 1
+connect t y
+ltype 0
+if ($color) {ctype default}
+#
+if ($do_gpe) {
+	box 0 2 0 0
+	#
+	data ssgetgpe.out
+	# ASSUME TIME STAMPS MATCH t VECTOR!...
+	read {gpe 2}
+	set gpe = ($G*$Ms*$Ms/$AU)*gpe
+	#
+	window 1 -3 1 2
+	limits t gpe
+	box 0 2 0 0
+	ylabel Grav. Pot. Energy U (J)
+	if ($color) {ctype $yellow}
+	connect t gpe
+	lsq t gpe t y
+	echo Energy stats: G.P.E. slope = $a
+	if ($color) {ctype red}
+	ltype 1
+	connect t y
+	ltype 0
+	if ($color) {ctype default}
+	#
+	set te = ke_max + gpe
+	#
+	window 1 -3 1 1
+	limits t te
+	box
+	time_label
+	ylabel Total Energy U (J)
+	if ($color) {ctype $yellow}
+	connect t te
+	lsq t te t y
+	echo Energy stats: T.E. slope = $a
+	if ($color) {ctype red}
+	ltype 1
+	connect t y
+	ltype 0
+	if ($color) {ctype default}
+} # if ($do_gpe)
+#
+expand 1.001
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.5 1.03
+putlabel 5 Energy Properties of Largest Rubble Pile
+next
+#
+if ($ps) {dev postencap rpa_nmv.ps}
+expand 0.8
+#
+window 1 -3 1 3
+new_limits t 0 n1 n2 n
+box 0 2 0 0
+ylabel No. Groups n
+if ($color) {ctype red}
+new_connect t n1
+ltype 1
+if ($color) {ctype green}
+new_connect t n2
+ltype 2
+if ($color) {ctype blue}
+new_connect t n
+new_label 0 red 0.05 0.86 0.05 n_1
+new_label 1 green 0.05 0.8 0.05 n_2
+new_label 2 blue 0.05 0.74 0.05 n
+#
+window 1 -3 1 2
+new_limits t 0 m1 m2 m
+box 0 2 0 0
+ylabel Mass m (M_{total})
+if ($color) {ctype red}
+new_connect t m1
+ltype 1
+if ($color) {ctype green}
+new_connect t m2
+ltype 2
+if ($color) {ctype blue}
+new_connect t m
+new_label 0 red 0.05 0.86 0.05 m_1
+new_label 1 green 0.05 0.8 0.05 m_2
+new_label 2 blue 0.05 0.74 0.05 m
+#
+window 1 -3 1 1
+new_limits t 0 vd1 vd2 vd
+box
+time_label
+ylabel Vel. Disp. \sigma\ (m s^{-1})
+if ($color) {ctype red}
+new_connect t vd1
+ltype 1
+if ($color) {ctype green}
+new_connect t vd2
+ltype 2
+if ($color) {ctype blue}
+new_connect t vd
+new_label 0 red 0.85 0.86 0.05 \sigma_1
+new_label 1 green 0.85 0.8 0.05 \sigma_2
+new_label 2 blue 0.85 0.74 0.05 \sigma
+#
+expand 1.001
+window 1 1 1 1
+limits 0 1 0 1
+relocate 0.42 1.03
+label Group Stats
+next
+#
+limits t -0.05 1.05
+box
+time_label
+ylabel M_{max},M_{acc},M_{orb},M_{esc} (M_{total})
+if ($color) {ctype $yellow}
+new_connect t m_max
+if ($color) {ctype red}
+ltype 1
+new_connect t m_acc
+if ($color) {ctype green}
+ltype 2
+new_connect t m_orb
+if ($color) {ctype blue}
+ltype 3
+new_connect t m_esc
+new_label 0 $yellow 0.75 0.95 0.1 M_{max}
+new_label 1 red 0.75 0.92 0.1 M_{acc}
+new_label 2 green 0.75 0.89 0.1 M_{orb}
+new_label 3 blue 0.75 0.86 0.1 M_{esc}
+next
+#
+quit
+#

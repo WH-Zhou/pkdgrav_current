@@ -1,0 +1,135 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+  \huge{ssresample.py Documentation}\\
+  \bigskip\bigskip
+  \Large{Last Update: 7/18/18}\\
+  \bigskip\bigskip
+  \large{Started By: Derek C. Richardson}\\
+  \bigskip
+  \large{Contact Info:}\\
+  Department of Astronomy\\
+  University of Maryland\\
+  College Park MD 20742\\
+  Tel: 301-405-8786\\
+  E-mail: \texttt{dcr@astro.umd.edu}
+\end{flushleft}
+
+\tableofcontents
+
+\section{OVERVIEW}
+
+This utility allows the user to replace one or more particles in an
+\code{ss} file each with the contents of an entire \code{ss} file
+scaled to fill the volume of the original particle(s).  In this way,
+the original file is being ``resampled'' to increase the resolution in
+some or all regions.
+
+\section{USAGE}
+
+The simplest invocation of the utility is:
+\begin{verbatim}
+ssresample.py ssfile
+\end{verbatim}
+where \code{ssfile} is the source file to be resampled.  The full list
+of options is as follows:
+
+\begin{description}
+\item{\code{--help}} ~ If present, shows a usage message and exits.
+\item{\code{--keep}} ~ If present, directs the utility to keep all
+  particles from the original \code{ss} file that are not replaced.
+  This is useful if resampling is only being done on a portion of the
+  \code{ss} file.
+\item{\code{--outfile OUTFILE}} ~ Specifies the name of the output
+  \code{ss} file to contain the resampled data.  Defaults to
+  \code{resampled.ss} if omitted.
+\item{\code{--particles PARTICLES}} ~ Specifies the name of a
+  \underline{text file} listing the particles to be replaced.  The
+  file should consist of one or more particle order numbers (\ie
+  integers between 0 and $N - 1$ inclusive, where $N$ is the number of
+  particles in the source file), one per line.  For example, to
+  replace only the 50th particle in the source file, the particle text
+  file would consist of just the number 49 (recall counting starts at
+  0).  The particle file is mandatory; if omitted, the name defaults
+  to \texttt{particles.txt}.  Optionally, \code{all} can be used in
+  place of a filename to indicate that \underline{all} particles
+  should be replaced.
+\item{\code{--replacements REPLACEMENTS}} ~ Specifies the name of a
+  \underline{text file} listing filenames of replacement \code{ss}
+  files.  If the file consists of more than one \code{ss} filename,
+  the replacement \code{ss} file to use will be selected randomly from
+  the list for each particle replaced.  The replacements file is
+  mandatory; if omitted, the name defaults to
+  \texttt{replacements.txt}.
+\item{\code{--sepmult SEPMULT}} ~ Specifies the separation multiplier
+  to apply to the replacement particles (default 1.01, \ie replacement
+  particle separations will be increased by 1\%).  This option is
+  provided as a way to adjust particle overlaps when using \pkd's
+  soft-sphere code, since the scaling of particle masses and radii
+  will cause a change in the equilibrium overlap of self-gravitating
+  particles in contact.  To avoid any large repulsive forces being
+  generated, the scaling should be set to compensate for the maximum
+  expected overlap (1\% in this example), but note that this will
+  likely cause some or all particles to come out of contact, so a
+  brief period of reequilibration will ensue.
+\end{description}
+
+Note the above options can be abbreviated to single letters, e.g.,
+\code{-h} or {\code{--h}}, etc.
+
+\section{EXAMPLE}
+
+The \code{etc} folder in the \pkd\ code distribution contains a
+subfolder \code{resample} with the following items:
+\begin{description}
+\item{\code{README}} ~ Contains the invocation of \code{ssgen} used to
+  generate the example source file.
+\item{\code{particles.txt}} ~ An example list of particles to replace
+  in the source file.
+\item{\code{replacements.txt}} ~ An example list of replacements to
+  use, in this case just a single \code{ss} file that was generated in
+  the \code{sample} subfolder.
+\item{\code{sample}} ~ A subfolder with the following items:
+  \begin{description}
+    \item{\code{demparams.log}} ~ The log output from \code{demparams}
+      used to determine \code{dDelta} and \code{dKn} in \code{ss.par}.
+    \item{\code{mksample.py}} ~ A Python script that runs \code{ssgen}
+      to generate a cluster of polydisperse particles, runs \pkd\ to
+      settle the cluster under its own gravity, then runs
+      \code{mkmov.py} to make a movie of the evolution.  The final
+      output from the \pkd\ simulation is used as the replacement
+      example.
+    \item{\code{ss.par}} ~ \pkd\ parameter file for settling the
+      cluster.
+    \item{\code{ssdraw.par}} ~ \code{ssdraw} parameter file for
+      visualizing the cluster.
+  \end{description}
+\item{\code{ssdraw.par}} ~ \code{ssdraw} parameter file for
+  visualizing \code{ssgen.ss} before replacement and for visualizing
+  \code{resampled.ss} after replacement.
+\item{\code{ssgen.ss}} ~ Sample source \code{ss} file, generated using
+  the parameters given in the \code{README} file.
+\end{description}
+
+To run the example, enter the \code{resample} subfolder and type
+\code{ssresample.py ssgen.ss}.  This should generate
+\code{resampled.ss}, which can be examined with \code{ssinfo} or by
+running \code{ssdraw resampled.ss} and viewing the resulting
+\code{resampled.ras} file.
+
+The \code{sample} subfolder is provided as an example automated way to
+generate your own equilibrated replacement clusters for future use.
+You will need to copy a \pkd\ binary compiled with \code{DEM}, fixed
+ball, and rotation dashpot enabled into this subfolder.  Then type
+\code{./mksample.py}.  If all goes well, after 5 to 10 minutes this
+will create \code{movie.mp4} (watch it with your favorite movie
+viewer) and will generate a new \code{ss.001000000}, which is the
+replacement file used in the example above.  The \code{ssgen}
+parameters used to generate the file are specified near the beginning
+of the \code{mksample.py} script, but you would need to run
+\code{demparams} to update \code{dDelta} and \code{dKn} if you change
+these parameters.
+
+\end{document}

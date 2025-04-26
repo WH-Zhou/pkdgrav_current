@@ -1,0 +1,101 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+  \huge{mkmov.py Documentation}\\
+  \bigskip\bigskip
+  \Large{Last Update: 7/21/18}\\
+  \bigskip\bigskip
+  \large{Started By: Derek C. Richardson}\\
+  \bigskip
+  \large{Contact Info:}\\
+  Department of Astronomy\\
+  University of Maryland\\
+  College Park MD 20742\\
+  Tel: 301-405-8786\\
+  E-mail: \texttt{dcr@astro.umd.edu}
+\end{flushleft}
+
+\tableofcontents
+
+\section{OVERVIEW}
+
+This utility automates the process of generating MPEG movies from
+\pkd\ output.  The steps are to run \code{ssdraw} on \pkd\ output
+files, convert the files using either \code{povray} or \code{rastoppm}
+to a format readable by \code{ffmpeg}, then generate the movie.  Each
+of these programs must be in the user's search path for this script to
+work.  In addition, at a minimum the user must provide
+\code{ssdraw.par} to go along with the \pkd\ output files.  If
+available, \code{ss.par} is used to determine the \pkd\ output
+basename (otherwise ``\code{ss}'' is assumed)---the output files are
+assumed to be of the form \code{basename.[0-9]*[0-9]} (\ie the
+basename followed by at least 2 digits, representing the timestep) and
+optionally with ``\code{.r}'' appended in the case of reduced output.
+If invoking POV-Ray (determined by the particle shape in
+\code{ssdraw.par}), the user must also provide \code{povray.inc} in
+the run directory.
+
+\section{USAGE}
+
+The script can be run without arguments (that's the whole idea!), but
+several options are provided for added functionality, as follows:
+
+\begin{description}
+\item{\code{--help}} ~ If present, shows a usage message and exits.
+\item{\code{--force}} ~ If present, overwrites any existing images.
+  Cannot be used with \code{--keep}.  Useful when redoing a movie from
+  scratch and old images already exist in the run directory.
+\item{\code{--keep}} ~ If present, retains existing images without
+  overwriting them.  Cannot be used with \code{--force}.  Useful for
+  generating images from newly added output without having to
+  regenerate images.  A new movie using the both old and new images
+  will be made.
+\item{\code{--batch}} ~ If present, runs \code{ssdraw} on all
+  \pkd\ output files at once (depending on the \code{--force|--keep}
+  flags).  Needed when using \code{ssdraw} functionality that is
+  frame-number dependent, such as an inertial camera.  Otherwise
+  \code{ssdraw} is run on one file at a time (followed by image
+  conversion and cleanup on each).
+\item{\code{--color24}} ~ Indicates that the \pkd\ output files use
+  24-bit color instead of a color index.  Only valid for POV-Ray
+  output.  Useful in conjunction with the \code{sscolor} utility.
+\item{\code{--orient}} ~ Indicates that \code{ssdraw} should take
+  particle orientation into account when drawing.  Requires \pkd\ to
+  be compiled and run with orientation support (making ``\code{.ori}''
+  files in addition to regular outputs).  Only valid for POV-Ray
+  output.
+\item{\code{--quiet}} ~ If present, runs the script in ``quiet'' mode,
+  with no output to the terminal unless an error is encountered.
+\item{\code{--nth NTH}} ~ Only draws every \code{NTH} frame
+  (default 1, \ie draw every frame).  Useful for quickly generating a
+  movie.  Even more useful in conjunction with \code{--keep}.
+\item{\code{--rate RATE}} ~ Set the movie frame rate to \code{RATE}
+  frames per second (default 25, which is the \code{ffmpeg} default).
+  Here \code{RATE} is a string expression, so ``1/5'' is interpreted
+  as 5 seconds per frame, and, \eg ``30000/1001'' is the proper frame
+  rate for NTSC video.  Useful for slowing down or speeding up a movie
+  smoothly (use a low frame rate to slow it down, a high frame rate to
+  speed it up), or to set the frame rate to ``real time,'' knowing the
+  simulation timestep.
+\end{description}
+
+Note the above options can be abbreviated to single letters, e.g.,
+\code{-h} or {\code{--h}}, etc.
+
+If both full and reduced \pkd\ outputs exist for the same timestep,
+the reduced output will be used in place of the full output.
+
+\section{EXAMPLE}
+
+The following example generates a movie from every 10$^{\mathrm{th}}$
+output frame, using POV-Ray to draw in 24-bit color, setting the frame
+rate to 1 frame per second, and retaining the image files in the run
+directory:
+
+\begin{verbatim}
+mkmov.py --keep -c -n 10 -r 1
+\end{verbatim}
+
+\end{document}

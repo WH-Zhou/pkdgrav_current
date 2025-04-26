@@ -1,0 +1,177 @@
+#!/bin/csh -f
+#
+# ssmrotate -- DCR 08/10/01
+# =========
+# Rotates scene around specified axes (calls ssdraw).
+#
+set me = `basename $0`
+alias ssgetopt "ssgetopt A:B:C:a:b:c:f:n: \!*"
+#
+set args = `ssgetopt : $argv`
+if ($status || $#args != 1) then
+	echo "Usage: $me [ -A first-rotation-fraction ] [ -B second ] [ -C third ] [ -a first-rotation-axis ] [ -b second ] [ -c third ] [ -f frames-file ] [ -n number-of-frames ] ss-file"
+	echo "       where rotation axes are of the form x,y,z (no spaces)"
+	exit 1
+endif
+#
+@ povshape = 2 # ssdraw particle shape value for POV objects
+#
+set f1 = `ssgetopt A $argv`
+if ("$f1" == "") set f1 = 1 # default (full rotation)
+if ($f1 == 0) then
+	echo $me\: Invalid first rotation fraction
+	exit 1
+endif
+#
+set f2 = `ssgetopt B $argv`
+if ("$f2" == "") set f2 = 0 # default (no second rotation)
+#
+set f3 = `ssgetopt C $argv`
+if ("$f3" == "") set f3 = 0
+#
+set axis1 = `ssgetopt a $argv`
+if ("$axis1" == "") set axis1 = "0,1,0" # rotate about y-axis by default
+if (`echo "$axis1" | awk -F, '{print NF}'` != 3) then
+	echo $me\: Invalid axis format...should be \"-a x,y,z\"
+	exit 1
+endif
+if ($axis1 == 0,0,0) then
+	echo $me\: Invalid first rotation axis
+	exit 1
+endif
+#
+set axis2 = `ssgetopt b $argv`
+if ("$axis2" == "") set axis2 = "0,0,0" # no second rotation by default
+if (`echo "$axis2" | awk -F, '{print NF}'` != 3) then
+	echo $me\: Invalid axis format...should be \"-b x,y,z\"
+	exit 1
+endif
+if ($axis2 == 0,0,0) then
+	set f2 = 0
+else if ($f2 == 0) then
+	set f2 = $f1
+endif
+#
+set axis3 = `ssgetopt c $argv`
+if ("$axis3" == "") set axis3 = "0,0,0"
+if (`echo "$axis3" | awk -F, '{print NF}'` != 3) then
+	echo $me\: Invalid axis format...should be \"-c x,y,z\"
+	exit 1
+endif
+if ($axis3 == 0,0,0) then
+	set f3 = 0
+else if ($f3 == 0) then
+	set f3 = $f1
+endif
+#
+set frames_file = `ssgetopt f $argv`
+if ("$frames_file" == "") set frames_file = frames.ssm # default
+if !(-e $frames_file) then
+	echo $me\: $frames_file not found
+	exit 1
+endif
+set parfile = `head -1 $frames_file | awk '{print $3}'`
+if !(-e $parfile) then
+	echo $me\: $parfile not found...aborting
+	exit 1
+endif
+@ shape = `awk '/Particle shape/{print $3}' $parfile`
+#
+set arg = `ssgetopt n $argv`
+if ("$arg" == "") then
+	@ n = 30 # default
+else
+	@ n = $arg
+endif
+if ($n <= 1 || $n > 10000) then
+	echo $me\: Invalid number of frames
+	exit 1
+endif
+#
+set file = $args[1]
+if !(-e $file) then
+	echo $me\: $file not found
+	exit 1
+endif
+set base = $file
+set ext = `echo $file | awk -F. '{print $NF}'`
+if ("$ext" == "ss") set base = `echo $file | sed s/\.ss//`
+unset ext
+#
+if ($shape == $povshape && -e $base.pov) then
+	mv -f $base.pov .tmp$me
+else if (-e $base.ras) then
+	mv -f $base.ras .tmp$me
+endif
+#
+set f = `echo '' | awk '{print '$f1'+'$f2'+'$f3'}'`
+@ n2 = `echo '' | awk '{print int('$n'*'$f2'/'$f')}'`
+@ n3 = `echo '' | awk '{print int('$n'*'$f3'/'$f')}'`
+@ n1 = $n - ($n2 + $n3)
+if ($n1 < 1) then
+	echo $me\: Insufficient first-rotation frames
+	exit 1
+endif
+set cp = (`awk '/Camera position/{print $3" "$4" "$5}' $parfile`)
+set sv = (`awk '/Sky vector/{print $3" "$4" "$5}' $parfile`)
+set pi = 3.141592654
+@ i = 0
+set axis1 = `echo $axis1 | sed 's/,/ /g'`
+set axis2 = `echo $axis2 | sed 's/,/ /g'`
+set axis3 = `echo $axis3 | sed 's/,/ /g'`
+while ($i < $n)
+	set frame = `echo '' | awk '{printf("%04d",'$i')}'`
+	echo $me\: frame $frame
+	if ($i == 0) then # special case: first frame has zero rotation
+		cp -f $parfile .tmp$me\1
+		goto draw
+	endif
+	@ j = $i + 1
+	if ($j > $n1) @ j = $n1
+	set phi = `echo '' | awk '{print 2*'$pi'*'$f1'*'$j'/'$n1'}'`
+	set newcp = (`rotate $cp $phi $axis1`)
+	set newsv = (`rotate $sv $phi $axis1`)
+	if ($i >= $n1) then
+		@ j = ($i - $n1) + 1
+		if ($j > $n2) @ j = $n2
+		set phi = `echo '' | awk '{print 2*'$pi'*'$f2'*'$j'/'$n2'}'`
+		set newcp = (`rotate $newcp $phi $axis2`)
+		set newsv = (`rotate $newsv $phi $axis2`)
+	endif
+	if ($i >= $n1 + $n2) then
+		@ j = ($i - ($n1 + $n2)) + 1
+		if ($j > $n3) then
+			echo $me\: This should not happen
+			exit 1
+		endif
+		set phi = `echo '' | awk '{print 2*'$pi'*'$f2'*'$j'/'$n3'}'`
+		set newcp = (`rotate $newcp $phi $axis3`)
+		set newsv = (`rotate $newsv $phi $axis3`)
+	endif
+	sed "/Camera position/s/$cp/$newcp/" $parfile |\
+		sed "/Sky vector/s/$sv/$newsv/" >! .tmp$me\1
+	draw:
+	ssdraw -p .tmp$me\1 $file > /dev/null
+	if ($status) then
+		echo $me\: Error running ssdraw...skipping...
+		@ i++
+		continue
+	endif
+	if ($shape == $povshape) then
+		mv -f $base.pov $base'r'$frame.pov
+	else
+		mv -f $base.ras $base'r'$frame.ras
+	endif
+	@ i++
+end
+#
+if (-e .tmp$me) then
+	if ($shape == $povshape) then
+		mv -f .tmp$me $base.pov
+	else
+		mv -f .tmp$me $base.ras
+	endif
+endif
+#
+rm -f .tmp$me*
+#

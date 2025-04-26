@@ -1,0 +1,52 @@
+\input{preamble}
+
+\begin{document}
+
+\begin{flushleft}
+
+\huge{\pkd\ \code{SPINUP\_WITH\_AGGS} Documentation}\\
+\bigskip\bigskip
+\Large{Last Update 9/14/21}\\
+\bigskip\bigskip
+\large{Created by Julian Marohnic 7/28/20}\\
+
+\end{flushleft}
+
+\section{OVERVIEW}
+
+\code{SPINUP\_WITH\_AGGS} is a \pkd\ compile option that allows the user to change the spin of a rubble pile composed of rigid aggregates in a controlled manner over the course of a simulation. It uses much of the conceptual framework and code behind the \code{SPINUP} compile option. At each time step, a torque is applied to the rubble pile according to user-settable options in \code{ss.par}. To accomplish this, the rubble pile is converted into a single aggregate\footnote{In contrast to the scheme used in \code{SPINUP}, \code{SPINUP\_WITH\_AGGS} uses an aggregate index of \code{INT\_MAX} and a corresponding original index of \code{-1 - INT\_MAX}. This allows for \code{FAST\_AGGS} compatibility.}. The current spin is determined, and the change in spin required to achieve the desired spin is calculated. This is then converted into an acceleration on each particle at the pkd level, which is added to any other accelerations particles have accumulated. \code{SPINUP\_WITH\_AGGS} does not make direct reference to the aggregates that make up the rubble pile; accelerations are resolved via the usual \pkd\ leapfrog integration. To ensure stability, additional small accelerations are applied to cancel any bulk rotation that develops about the x and y axes. 
+
+\code{SPINUP\_WITH\_AGGS} uses all of the same inputs to \code{ss.par} that \code{SPINUP} does. While originally conceived to allow for spinup of rubble piles composed of rigid aggregates, this compile option will work just as well with individual particles and should produce the same result as the old spinup routine when applied to a system with no rigid aggregates. \code{SPINUP\_WITH\_AGGS} is completely compatible with \code{FAST\_AGGS}. \\
+
+\section{Usage}
+In order to make use of \code{SPINUP\_WITH\_AGGS}, one must uncomment
+these options in Makefile.in:
+\begin{verbatim}
+USE_AGGS=true
+USE_SPINUP=true
+USE_SPINUP_WITH_AGGS=true
+\end{verbatim}
+Then the code can be recompiled and the new routines will take effect. Any restrictions that apply to rigid aggregates will apply here as well.
+
+\section{Backwards Compatibility}
+
+As described above, \code{SPINUP\_WITH\_AGGS} should have the same effect as \code{SPINUP} when applied to spherical particles alone, and takes exactly the same user input option that \code{SPINUP} does. Since the approach used in \code{SPINUP\_WITH\_AGGS} can be thought of as more general and is applicable to more use cases than \code{SPINUP}, it may be desirable to designate \code{SPINUP\_WITH\_AGGS} as the primary spinup option in the future. In this case, it would probably be appropriate to rename the option.
+
+\section{Affected Functions}
+\begin{verbatim}
+pkdAggsGetAxesAndSpin
+_getAxesAndSpin
+
+msrSpinupAccel
+pstSpinupAccel
+pkdSpinupAccel
+
+pkdSpinupGetAgg
+\end{verbatim} 
+
+The first two functions (in \code{aggs.c}) have been modified so that, when \code{SPINUP\_WITH\_AGGS} is enabled, the center of mass of each aggregate is calculated correctly, even though we are technically using ``aggs within aggs" here (the real aggs and the ``super-agg" that contains all particles within the spinup domain). Note that this relies on the spinup super-agg having an \code{iAggIdx} value of -1, and being the \textbf{only} agg to have this value.
+
+The next three functions are new and implement the bulk of the new spinup method described here. They use much of the code from \code{msrSpinup}, \code{pstSpinup}, and \code{pkdSpinup}, the corresponding functions for \code{SPINUP} compile option.
+
+A small, though crucial, change to \code{pkdSpinupGetAgg} saves the true aggregate index in a new particle field called \code{iActualIdx}, since \code{iOrgIdx} is overwritten during the course of the spinup routine. This value is restored at the end of \code{pkdSpinupAccel}, and allows us to actually use rigid aggregates in the simulation, while still taking advantage of the aggregate framework to perform the spinup.
+\end{document}

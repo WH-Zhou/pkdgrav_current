@@ -1,0 +1,1 @@
+collmod.o: ../../collmod.c

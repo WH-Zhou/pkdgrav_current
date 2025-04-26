@@ -1,0 +1,47 @@
+# sample walls data file: a box above a plane
+# to visualize: ssdraw -w -p ssdraw_walls.par; pov walls.pov.gz; open walls.png
+
+lengthunit 6.68445e-14 # 1 cm in AU
+
+defaults epsn 0.8 epst 1.0
+
+wall # floor
+  type plane
+
+# open box; lengths x=10, y=3, z=5; 1 cm above plane
+
+wall # base
+  type rectangle
+  origin 0 0 1
+  vertex1 10 0 0
+  vertex2 0 3 0
+  color 2
+
+wall # front face
+  type rectangle
+  origin 0 0 1
+  vertex1 10 0 0
+  vertex2 0 0 5
+  transparency 80 # so we can see inside!
+  color 3
+
+wall # back face
+  type rectangle
+  origin 0 3 1
+  vertex1 10 0 0
+  vertex2 0 0 5
+  color 4
+
+wall # left face
+  type rectangle
+  origin 0 0 1
+  vertex1 0 3 0
+  vertex2 0 0 5
+  color 5
+
+wall # right face
+  type rectangle
+  origin 10 0 1
+  vertex1 0 3 0
+  vertex2 0 0 5
+  color 6

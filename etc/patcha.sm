@@ -1,0 +1,266 @@
+#
+define ps 0		# device: 0=X11, 1=postencap
+define TeX_strings 1
+define verbose 0
+define color 1
+#
+macro pause {
+	define _x "c"
+	define _x ? {more}
+	if ('$_x' == 'q') {quit}
+	delete _x
+}
+#
+macro next {
+	if ($ps) {
+		hardcopy
+	} else {
+		pause
+		erase
+	}
+}
+#
+macro get_sym_limits 3 { # vector min max (min = -max)
+	set _a = abs($1)
+	if (dimen(_a) == 0) {return}
+	vecminmax _a _v1 _v2
+	define $2 (- $_v2)
+	define $3 $_v2
+	foreach _v (_a _v1 _v2) {delete $_v}
+}
+#
+macro new_limits 15 { # x-var sym-flag y-var1 [ y-var2 [ y-var3 ] ]
+	if ($2) {
+		set _a1 = abs($3)
+		if ($?4) {set _a2 = abs($4)}
+		if ($?5) {set _a3 = abs($5)}
+	} else {
+		set _a1 = $3
+		if ($?4) {set _a2 = $4}
+		if ($?5) {set _a3 = $5}
+	}
+	set _amin = _a1
+	set _amax = _a1
+	if ($?4) {
+		if (!$2) {set _amin = (_a1 < _a2 ? _a1 : _a2)}
+		set _amax = (_a1 > _a2 ? _a1 : _a2)
+	}
+	if ($?5) {
+		if (!$2) {set _amin = (_amin < _a3 ? _amin : _a3)}
+		set _amax = (_amax > _a3 ? _amax : _a3)
+	}
+	if ($2) {
+		set _a = _amax
+	} else {
+		set _a = _amin concat _amax
+	}	
+	if (dimen(_a) == 0) {return}
+	vecminmax _a vmin vmax
+	if ($2) {
+		define _dv (2*$vmax)
+	} else {
+		define _dv ($vmax - $vmin)
+	}
+	define vmax ($vmax + 0.05*$_dv)
+	if ($2) {
+		define vmin (- $vmax)
+	} else {
+		define vmin ($vmin - 0.05*$_dv)
+	}
+	limits $1 $vmin $vmax
+	foreach _v (_a1 _amin _amax _a _dv) {delete $_v}
+	if ($?4) {delete _a2}
+	if ($?5) {delete _a3}
+}
+#
+macro x_fiducial 3 { # x-var y-pos color
+	vecminmax $1 xmin xmax
+	relocate $xmin $2
+	ltype 3
+	if ($color) {ctype $3}
+	draw $xmax $2
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro y_fiducial 3 { # y-var x-pos color
+	vecminmax $1 ymin ymax
+	relocate $2 $ymin
+	ltype 3
+	if ($color) {ctype $3}
+	draw $2 $ymax
+	if ($color) {ctype default}
+	ltype 0
+}
+#
+macro new_label 6 { # ltype ctype x-pos y-pos width label
+	limits 0 1 0 1
+	ltype $1
+	if ($color) {ctype $2}
+	relocate $3 $4
+	define _x0 ($3 + $5)
+	draw $_x0 $4
+	ltype 0
+	define _x0 ($_x0 + 0.25*$5)
+	define _y0 ($4 - 0.005) # minor adjustment
+	relocate $_x0 $_y0
+	label {$6} # {}'s force correct font
+	if ($color) {ctype default}
+	delete _x0
+	delete _y0
+}
+#
+if ($ps == 0) {dev x11 -bg black -geom 800x800+0+0}
+expand 1.001
+ptype 4 0
+data patcha.out
+read {t 1 x 2 y 3 z 4 vx 5 vy 6 vz 7 vdx 8 vdy 9 vdz 10 td 11 tpa 12 tpd 13 ff 14 zh 15 xsig 16}
+echo Press enter to see first plot...
+next # kludge to get around partial drawing of first plot
+#
+if ($ps) {dev postencap patcha_r.eps}
+new_limits t 0 x y z
+box
+xlabel Time (T_{orb})
+ylabel x, y, z (L)
+if ($color) {ctype red}
+points t x
+connect t x
+if ($color) {ctype green}
+points t y
+ltype 1
+connect t y
+ltype 0
+if ($color) {ctype blue}
+points t z
+ltype 2
+connect t z
+ltype 0
+new_label 0 red 0.05 0.95 0.1 x
+new_label 1 green 0.05 0.9 0.1 y
+new_label 2 blue 0.05 0.85 0.1 z
+relocate 0.5 1.02
+putlabel 5 Barycentre Position
+next
+#
+if ($ps) {dev postencap patcha_v.eps}
+new_limits t 0 vx vy vz
+box
+xlabel Time (T_{orb})
+ylabel \dot{x}, \dot{y}, \dot{z} (\Omega L)
+if ($color) {ctype red}
+points t vx
+connect t vx
+if ($color) {ctype green}
+points t vy
+ltype 1
+connect t vy
+ltype 0
+if ($color) {ctype blue}
+points t vz
+ltype 2
+connect t vz
+ltype 0
+new_label 0 red 0.05 0.95 0.1 \dot{x}
+new_label 1 green 0.05 0.9 0.1 \dot{y}
+new_label 2 blue 0.05 0.85 0.1 \dot{z}
+relocate 0.5 1.02
+putlabel 5 Barycentre Velocity
+next
+#
+if ($ps) {dev postencap patcha_vd.eps}
+new_limits t 0 vdx vdy vdz
+box
+xlabel Time (T_{orb})
+ylabel \sigma_x, \sigma_y, \sigma_z (\Omega <R>)
+if ($color) {ctype red}
+points t vdx
+connect t vdx
+if ($color) {ctype green}
+points t vdy
+ltype 1
+connect t vdy
+ltype 0
+if ($color) {ctype blue}
+points t vdz
+ltype 2
+connect t vdz
+ltype 0
+new_label 0 red 0.05 0.95 0.1 \sigma_x
+new_label 1 green 0.05 0.9 0.1 \sigma_y
+new_label 2 blue 0.05 0.85 0.1 \sigma_z
+relocate 0.5 1.02
+putlabel 5 Velocity Dispersion
+next
+#
+if ($ps) {dev postencap patcha_tau.eps}
+limits t 0 1
+box
+xlabel Time (T_{orb})
+ylabel \tau_p, \tau_p
+if ($color) {ctype red}
+points t tpa
+errorbar t tpa tpd 2
+errorbar t tpa tpd 4
+connect t tpa
+stats tpa tpavg tpdev tpkur
+relocate $fx1 $tpavg
+ltype 2
+draw $fx2 $tpavg
+ltype 0
+if ($color) {ctype green}
+points t td
+ltype 1
+connect t td
+ltype 0
+new_label 0 red 0.05 0.95 0.1 \tau_p
+new_label 1 green 0.05 0.9 0.1 \tau_d
+relocate 0.5 1.02
+putlabel 5 Optical Depth
+echo Mean tau_phys = $tpavg dev = $tpdev
+next
+#
+if ($ps) {dev postencap patcha_ff.eps}
+limits t ff
+box
+xlabel Time (T_{orb})
+ylabel FF(z = 0)
+if ($color) {ctype yellow}
+points t ff
+connect t ff
+if ($color) {ctype default}
+limits 0 1 0 1
+relocate 0.5 1.02
+putlabel 5 Filling Factor at Midplane
+next
+#
+if ($ps) {dev postencap patcha_zh.eps}
+limits t zh
+box
+xlabel Time (T_{orb})
+ylabel Scale Height (<R>)
+if ($color) {ctype yellow}
+points t zh
+connect t zh
+if ($color) {ctype default}
+limits 0 1 0 1
+relocate 0.5 1.02
+putlabel 5 Scale Height
+next
+#
+if ($ps) {dev postencap patcha_xsig.eps}
+limits t xsig
+box
+xlabel Time (T_{orb})
+ylabel X (Radial) Dispersion (km)
+if ($color) {ctype yellow}
+points t xsig
+connect t xsig
+if ($color) {ctype default}
+limits 0 1 0 1
+relocate 0.5 1.02
+putlabel 5 Ring Width
+next
+#
+quit
+#

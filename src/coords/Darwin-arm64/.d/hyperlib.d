@@ -1,0 +1,1 @@
+hyperlib.o: ../hyperlib.c

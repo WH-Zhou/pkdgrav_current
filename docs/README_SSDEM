@@ -1,0 +1,9 @@
+DCR 6/7/18: currently bUseLegacyRoll and bUseContactRadius can be set
+regardless of whether DEM_ROTATION_DASHPOT is defined, even though
+they're really intended to modify the behavior of the dashpot.  This
+needs to be cleaned up in a future update, but for now the parameters
+remain in the "DEM_ROTATION_DASHPOT"-only section of ss.par, even
+though they can be used without that option.  See email exchange with
+Steve and Yun 6/5-6/7.  Note that the friction strength will be
+affected by activating these functions since the contact area used to
+calculate the friction resistance is changed.

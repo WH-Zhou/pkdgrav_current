@@ -1,0 +1,41 @@
+#!/bin/csh -f
+#
+if ($#argv >= 1) then
+	if ($#argv > 1 || ($#argv == 1 && "$argv[1]" != x)) then
+		echo Usage: $0 [ x ]
+		echo Where "x" means to overwrite existing frames.
+		exit 1
+	endif
+endif
+#
+if !(-e demstats.sm) then
+	echo Missing demstats.sm -- try getting a copy from pkdgrav etc directory
+	exit 1
+endif
+#
+@ i = 0
+foreach file (ss.*.demstats)
+	set oframe = demstats_ohist`printf %012d $i`.png
+	set aframe = demstats_ahist`printf %012d $i`.png
+	set sframe = demstats_shist`printf %012d $i`.png
+	if ($#argv > 0 || !(-e $oframe) || !(-e $aframe) || !(-e $sframe)) then
+		echo $file '['frame $i']'
+		rm -f ss.demstats
+		ln -s $file ss.demstats
+		sm inp_new demstats.sm > /dev/null
+		pstopnm -portrait -stdout -xsize 1000 -ysize 1000 demstats_ohist.eps | pnmtopng >! $oframe
+		pstopnm -portrait -stdout -xsize 1000 -ysize 1000 demstats_ahist.eps | pnmtopng >! $aframe
+		pstopnm -portrait -stdout -xsize 1000 -ysize 1000 demstats_shist.eps | pnmtopng >! $sframe
+	endif
+	@ i++
+end
+rm -f ss.demstats
+ffmpeg -i demstats_ohist%012d.png -pix_fmt yuv420p -y demstats_ohist.mp4 << EOF
+EOF
+ffmpeg -i demstats_ahist%012d.png -pix_fmt yuv420p -y demstats_ahist.mp4 << EOF
+EOF
+ffmpeg -i demstats_shist%012d.png -pix_fmt yuv420p -y demstats_shist.mp4 << EOF
+EOF
+rm -f demstats_{o,a,s}hist*.eps
+if ($#argv > 0) rm -f demstats_{o,a,s}hist*.png
+#

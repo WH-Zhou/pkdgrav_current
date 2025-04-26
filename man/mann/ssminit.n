@@ -1,0 +1,50 @@
+.TH ssminit n "July 1, 2002" "Ver: 2.0"
+.SH NAME
+ssminit \- Initializes frames file for ssm utilities.
+.SH SYNOPSIS
+ssminit [-f \fIframes-file\fP] [-i \fIimage-type\fP] [-m
+\fImovie-type\fP] [-p \fIssdraw-parameter-file\fP] [-s
+\fIframe-size\fP]
+.SH DESCRIPTION
+This script should be called prior to making a new movie.  It
+initializes the frames file and stores the animation parameters as a
+header line for use by other ssm scripts, including
+\fBssmmakemovie\fP.  The parameters are image type, movie type,
+\fBssdraw\fP parameter file, and image size.  Any previous entries in
+the frames file will be erased but the corresponding images will not.
+Use \fBssmclean\fP for that.  Also, the \fBssdraw\fP parameter file
+and, if applicable, the \fBmpeg_encode\fP parameter file (mpeg.par)
+will be modified to conform to the selected frame size and/or image
+type.  A sample mpeg.par can be found in ss_core/etc, but
+\fBssminit\fP will generate one automatically anyway if necessary.
+Images can be added to the frames file using \fBssmrecord\fP.
+.SH OPTIONS
+.IP "-f \fIfile\fP"
+Store animation parameters in \fIfile\fP (default frames.ssm).
+.IP "-i \fItype\fP"
+Store final images in \fItype\fP format (default PPM, ppm).  For FLI
+movies, this must be ppm; for GIF movies, this must be gif.  Other
+supported image types are JPEG (jpg), Portable Network Graphics (png),
+Sun rasterfile (ras), TrueVision Targa (tga), and X window dump (xwd).
+The script \fBssmconvert\fP can be used to convert between image
+types.
+.IP "-m \fItype\fP"
+Use movie format \fItype\fP for \fBssmmakemovie\fP (default MPEG,
+mpg).  Other supported movie types are FLI/FLC-animations (fli) and
+animated GIFs (gif).
+.IP "-p \fIfile\fP"
+Read \fBssdraw\fP parameters from \fIfile\fP (default ssdraw.par).
+.IP "-s \fIsize\fP"
+Create square frames \fIsize\fP pixels on a side (default 400).
+.SH SEE ALSO
+mpeg_encode(1), ssdraw(n), ssmclean(n), ssmconvert(n),
+ssmmakemovie(n), ssmrecord(n)
+.SH COPYRIGHT
+The ssm scripts, part of the ss_core package, are Copyright (C) 2002
+Derek C. Richardson and may not be redistributed without express
+permission from the author.
+.SH AUTHOR
+Derek C. Richardson, University of Maryland.
+.SH BUGS
+All bug reports, comments, praise, and criticism should be e-mailed to
+dcr@astro.umd.edu

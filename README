@@ -1,0 +1,19 @@
+This version of pkdgrav is hosted in a private GitHub repository:
+
+	https://github.com/dcrastro/pkdgrav_current
+
+It contains the latest soft-sphere discrete element method (SSDEM)
+implementation.
+
+To compile, edit Makefile.in as needed, then "make".  Executables will
+be in the bin directory.
+
+For basic (incomplete) documentation, see the docs directory.
+
+For a tutorial, see SSDEM_tutorial.pdf in the docs directory.
+
+This is PRIVATE software that should not be used or distributed
+without permission from one of the authors.  The authors retain full
+copyright privileges.
+
+Last update of this README file: 1/9/18 by DCR.

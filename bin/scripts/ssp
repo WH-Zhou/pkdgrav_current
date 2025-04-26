@@ -1,0 +1,48 @@
+#!/bin/csh -f
+#
+# ssp -- constructs sm script from ssic.par file
+#
+set template = ssa.sm.tmpl
+#
+if !(-f $template) then
+	echo $template not found -- aborting.
+	exit 1
+endif
+#
+if !(-f ssic.par) then
+	echo ssic.par not found -- aborting.
+	exit 1
+endif
+#
+echo Constructing ssa.sm file...
+#
+set Mc = 	`awk '/Central mass/{print $3}' ssic.par`
+set N0 =	`awk '/Number of planetesimals/{print $4}' ssic.par`
+set mass =	`awk '/Total mass/{print $3}' ssic.par`
+set rho =	`awk '/Planetesimal density/{print $3}' ssic.par`
+set radius =	`grep "Planetesimal radius" ssic.par | head -1 | awk '{print $3}'`
+set f =		`awk '/Planetesimal radius scaling/{print $4}' ssic.par`
+set a_min0 =	`awk '/Inner orbital radius/{print $4}' ssic.par`
+set a_max0 =	`awk '/Outer orbital radius/{print $4}' ssic.par`
+set log_int =	`awk '/iLogInterval/{print $3}' ss.par`
+set seed_mass =	`awk '/Seed mass/{print $3}' ssic.par`
+set soft_flag = `awk '/Radius is softening?/{print $4}' ssic.par`
+#
+set seed_flag = 0
+if (`echo '' | awk '{print '$seed_mass'*1}'` != 0) set seed_flag = 1
+#
+cat $template |	sed -e "/define Mc/s/xxx/$Mc/" |\
+		sed -e "/define N0/s/xxx/$N0/" |\
+		sed -e "/define mass/s/xxx/$mass/" |\
+		sed -e "/define rho/s/xxx/$rho/" |\
+		sed -e "/define radius/s/xxx/$radius/" |\
+		sed -e "/define f/s/xxx/$f/" |\
+		sed -e "/define a_min0/s/xxx/$a_min0/" |\
+		sed -e "/define a_max0/s/xxx/$a_max0/" |\
+		sed -e "/define log_int/s/xxx/$log_int/" |\
+		sed -e "/define jup_is_seed/s/xxx/$seed_flag/" |\
+		sed -e "/define r_is_softening/s/xxx/$soft_flag/" >! ssa.sm
+#
+echo Done\!
+echo Type \"sm inp_new ssa.sm\" to plot...
+#

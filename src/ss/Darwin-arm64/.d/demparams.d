@@ -1,0 +1,1 @@
+demparams.o: ../demparams.c
