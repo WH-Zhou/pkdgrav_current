@@ -7,18 +7,18 @@ bParaRead	= 1		# enable parallel reads? (should usually work)
 bParaWrite	= 0		# enable parallel writes? (may require testing)
 bUseWallClock	= 0		# time using wall clock? (instead of CPU time)
 bKDK		= 1		# for now always use Kick-Drift-Kick scheme
-dDelta		= 3e-07	# maximum step in units of yr / 2 pi
-nSteps  =  50223          #this line edited with demtools.edit_sspar() 
+dDelta		= 9.96129e-08	# maximum step in units of yr / 2 pi
+nSteps  =  330223          #this line edited with demtools.edit_sspar() 
 iStartStep  =  0         #this line edited with demtools.edit_sspar() 
 nBucket		= 8		# trade off tree memory versus run cost
 dTheta		= 0.5		# critical opening angle for tree (in radians)
 bDoGravity	= 1		# include gravity (interparticle + external)?
 bDoSelfGravity	= 0		# include interparticle gravity?
 bHeliocentric	= 0		# use "heliocentric" reference frame?
-dCentMass	= 7.5e-14		# central mass in helio (or PATCH) frame (M_Sun)
+dCentMass	= 3.2e-7		# central mass in helio (or PATCH) frame (M_Sun)
 bFandG		= 0		# use Gauss' F & G function (Kepler) drift?
 achDataSubPath	= .		# extension to PTOOLS_DATA_PATH, if used
-achInFile  =  patchic.ss          #this line edited with demtools.edit_sspar() 
+achInFile  =  initcond.ss          #this line edited with demtools.edit_sspar() 
 achOutName	= ss		# output file prefix
 dExtraStore	= 0.1		# fractional extra storage per processor
 bStandard	= 0		# use old Tipsy I/O format if applicable
@@ -50,9 +50,9 @@ bDoIOrderOutput	= 0		# output iOrder numbers?
 # Periodic boundary conditions (see below for SLIDING_PATCH)...
 #
 bPeriodic	= 1		# use periodic boundary conditions?
-dxPeriod	= 6.70914e-10		# x width of boundary (0 for none)
-dyPeriod	= 6.70914e-10		# y width of boundary (0 for none)
-dzPeriod	= 0		# z width of boundary (0 for none)
+dxPeriod	= 1.2865e-10		# x width of boundary (0 for none)
+dyPeriod	= 1.2865e-10		# y width of boundary (0 for none)
+dzPeriod	= 3.34e-11		# z width of boundary (0 for none)
 nReplicas	= 3		# number of ghost layers to use
 bEwald		= 0		# apply Ewald correction?
 #
@@ -157,7 +157,7 @@ dFragLimit	= 0.0		# fraction of escape speed (< 0 ==> absolute)
 # NOTE: must also set dCentMass and periodic boundary conditions above
 #
 bPatch		= 1	# use orbiting patch reference frame?
-dOrbDist	= 0.00000067 # orbital distance of patch center (in AU)
+dOrbDist	= 4.53e-5 # orbital distance of patch center (in AU)
 #
 bExtPert	= 0	# add external patch perturber?
 dPertOrbDist	= 0	# orbital distance of perturber (in AU)

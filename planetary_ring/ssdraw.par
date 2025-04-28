@@ -67,8 +67,8 @@ Highlight index		-1		! Original index (-1=disable)
 # Sliding patch model parameters...
 #
 Use sliding patches?	1	! 0=NO,1=YES
-Patch width		-100	! In AU (or -ve for mks units)
-Patch length		-100	! Ditto
+Patch width		-52	! In AU (or -ve for mks units)
+Patch length		-52	! Ditto
 Orbital frequency	6.6002970391070903e+02	! In simulation units (or -ve for mks)
 Number of replicas	1	! Must be at least 1
 Ghost color		1	! 0=use same color

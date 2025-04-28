@@ -107,3 +107,12 @@ v = N(0, v_max) * np.sqrt(M_mean/M)
 
 
 
+# Procedure for simulation
+
+
+ss.par: dDelta; nSteps; dCentMass; dxPeriod; dyPeriod; dOrbDist
+
+
+
+
+
