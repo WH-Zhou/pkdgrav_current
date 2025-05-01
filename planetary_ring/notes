@@ -4,6 +4,23 @@ iRedOutInterval	        # reduced-output interval in timesteps
 dDelta  # time step
 nSteps  # number of total timesteps..
 
+# Procedure for simulation
+patchic.par: Orbital distance; Dynamical optical dept; Patch dimensions; Velocity limits
+ssdraw.par: Patch width; Patch length; View size
+ss.par: dDelta; nSteps; dCentMass; dxPeriod; dyPeriod; dOrbDist
+
+If change optical depth tau, then Sigma change -> lambda_crit
+(1) patchic.par (Dynamical optical depth; Patch dimensions; Velocity limit)
+(2) ssdraw.par (Patch width; Patch length; View size; Orbital frequency)
+(3) ss.par (dxPeriod; dyPeriod)
+
+If change orbital radius but fix the height, then omega_orb change -> lambda_crit
+(1) patchic.par (Orbital distance; Patch dimensions; Velocity limit)
+(1) ssdraw.par (Patch width; Patch length; View size)
+(2) ss.par (dOrbDist; dxPeriod; dyPeriod)
+Also, orbit_speed change -> theoretical_collision_speed -> vx, vy, vz  -> the timestep 
+(1) ss.par (dDelta)
+
 # command to run pkdgrav
 pkdgrav ss.par > output 2>&1 &
 
@@ -27,12 +44,14 @@ The ghost color in ssdraw is the color assigned to replicated particles (in repl
 To make the particle size corrent:
 Camera position		0 0 1e-8	! Abs or rel coords in length units or radii*
 
-To set the frame in a good size:
-Starting view size	-150	! In length units (-ve for mks units; 0=min)
+
 
 To avoid overlap with ghost particles:
-Patch width		-100	! In AU (or -ve for mks units)
-Patch length		-100	! Ditto
+Patch width		-Lx	! In AU (or -ve for mks units)
+Patch length		-Lx	! Ditto
+
+To set the frame in a good size:
+Starting view size	= Lx or Ly * 3	! In length units (-ve for mks units; 0=min)
 
 
 
@@ -107,10 +126,21 @@ v = N(0, v_max) * np.sqrt(M_mean/M)
 
 
 
-# Procedure for simulation
 
 
-ss.par: dDelta; nSteps; dCentMass; dxPeriod; dyPeriod; dOrbDist
+
+
+
+
+
+
+
+
+# Errors & Solutions
+
+1. DEM ERROR #1 (pid=0,T=0) fatal overlap: 431 & 622, 68.029635% of smaller radius (relative v = 7.44246e-08)
+Assertion failed: (iWarningType != DEM_ERROR), function DoDEM, file smoothfcn.c, line 4580.
+SOLUTION: change "Patch dimensions" in patchic.par from "30 30 10" to "10 10 10" 
 
 
 

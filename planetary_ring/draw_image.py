@@ -12,14 +12,16 @@ def run_command(command):
     print(result.stdout)
 
 def generate_image(filename):
+
+    # directory = os.path.dirname(input_filename) + '/'  # 'results/tau_015_R_2/'
     # Step 1: Run ssdraw
-    path = 'results/'
-    run_command(["ssdraw", path + filename])
+    
+    run_command(["ssdraw", filename])
 
     # Assuming output is filename.pov.gz
-    base = filename
+    base = os.path.basename(filename)        # 'initcond.ss'
     if filename.endswith(".ss") or filename.endswith(".r"):
-        base = os.path.splitext(filename)[0]
+        base = os.path.splitext(base)[0]
     gz_file = f"{base}.pov.gz"
     pov_file = f"{base}.pov"
     output_image = f"{base}.png"
@@ -48,4 +50,5 @@ if __name__ == "__main__":
         # print("Usage: python render_pipeline.py <filename>")
         sys.exit(1)
     input_filename = sys.argv[1]
+
     generate_image(input_filename)

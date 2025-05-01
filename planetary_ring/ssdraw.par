@@ -6,17 +6,17 @@
 Frame size		1800	! In pixels. Also used for view scaling.
 Light source option	0	! 0=FIX,1=LRG,2=POT,3=COL,4=PID,5=OID,6=CAM
 Light source lock	0	! For 3-5 only (color [0=all]/ID [agg: OID<0])
-Light source position	3e-8 3e-8 3e-8	! Abs or rel coords in length units or radii*
+Light source position	3e-9 0 1.4e-9	! Abs or rel coords in length units or radii*
 Light source intensity	1.0	! Between 0 and 1 inclusive; can be > 1 for POV
 Camera option		0	! 0=FIX,1=LRG,2=POT,3=COL,4=PID,5=OID
 Camera lock		0	! For 3-5 only (color [0=all]/ID [agg: OID<0])
-Camera position		0 0 1e-8	! Abs or rel coords in length units or radii*
+Camera position		0 0 3e-9	! Abs or rel coords in length units or radii*
 View option		0	! 0=FIX,1=LRG,2=POT,3=COL,4=PID,5=OID,6=DIR
 View lock		0	! For 3-5 only (color [0=all]/ID [agg: OID<0])
 Look at/view direction	0 0 0	! Abs or rel coords in length units or radii*
 Focus distance		0	! In length units (-ve = mks)
 Sky vector		0 1 0	! Camera orientation, arbitrary units
-Starting view size	-150	! In length units (-ve for mks units; 0=min)
+Starting view size	-64.9575	! In length units (-ve for mks units; 0=min)
 View scaling criterion	0.0	! Maximum invisible fraction (or 0 to disable)
 View scaling factor	2	! Must be > 1 if scaling enabled
 Scale length by radius? 0	! 0=NO,1=YES, for options 1,4,5 above only*
@@ -67,9 +67,9 @@ Highlight index		-1		! Original index (-1=disable)
 # Sliding patch model parameters...
 #
 Use sliding patches?	1	! 0=NO,1=YES
-Patch width		-52	! In AU (or -ve for mks units)
-Patch length		-52	! Ditto
-Orbital frequency	6.6002970391070903e+02	! In simulation units (or -ve for mks)
+Patch width		-64.9575	! In AU (or -ve for mks units)
+Patch length		-64.9575	! Ditto
+Orbital frequency	-0.0002	! In simulation units (or -ve for mks)
 Number of replicas	1	! Must be at least 1
 Ghost color		1	! 0=use same color
 Draw patch lines?	1	! 0=NO,1=YES

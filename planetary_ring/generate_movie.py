@@ -3,8 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-def generate_filenames(start, end, step):
-    return [f"ss.{str(i).zfill(10)}" for i in range(start, end, step)]
+def generate_filenames(path, start, end, step):
+    return [path + f"/ss.{str(i).zfill(10)}" for i in range(start, end, step)]
 
 def run_draw_image(file):
     # print(f"🎨 Rendering image from: {file}")
@@ -38,16 +38,26 @@ def cleanup_images(image_files):
         except OSError as e:
             print(f"Error deleting {img}: {e}")
 
-def main(start_index, end_index, step=10000, duration=0.5, output = "output"):
-    filenames = generate_filenames(start_index, end_index, step)
+def main(path, start_index, end_index, step=10000, duration=0.5, output = "output"):
+
+    filenames = generate_filenames(path, start_index, end_index, step)
 
     rendered_images = []
     pov_images = []
+    bases = []
+
+
     for file in filenames:
         run_draw_image(file)
         # base = Path(file).stem  # e.g., ss.0000001000
-        rendered_images.append(f"{file}.png")
-        pov_images.append(f"{file}.pov")
+        base = os.path.basename(file)        # 'initcond.ss'
+        if file.endswith(".ss") or file.endswith(".r"):
+            base = os.path.splitext(base)[0]
+        bases.append(base)
+        rendered_images.append(f"{base}.png")
+        pov_images.append(f"{base}.pov")
+
+        print(rendered_images[-1], pov_images[-1])
 
     create_file_list(rendered_images, duration)
     create_video_from_list(output=output)
@@ -55,12 +65,13 @@ def main(start_index, end_index, step=10000, duration=0.5, output = "output"):
     cleanup_images(pov_images)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 7:
         sys.exit(1)
 
-    start = int(sys.argv[1])
-    end = int(sys.argv[2])
-    step = int(sys.argv[3])
-    duration = float(sys.argv[4])
-    output = str(sys.argv[5] + ".mp4")
-    main(start, end, step, duration, output)
+    path = str(sys.argv[1])
+    start = int(sys.argv[2])
+    end = int(sys.argv[3])
+    step = int(sys.argv[4])
+    duration = float(sys.argv[5])
+    output = str(sys.argv[6] + ".mp4")
+    main(path, start, end, step, duration, output)

@@ -1,0 +1,19 @@
+Patch: orb freq = 1009.46 = 0.000200986 rad/s <==> P = 8.68384 h = 0.361827 d
+WARNING: iOutcomes ignored with soft sphere DEM.
+PKDGRAV running on 1 processor.
+pstRandSeedGenerator(): processor 0 random seed = 11437173570030845120
+NOTE: Times reported as "Wallclock" are in fact CPU times.
+WARNING: No floating point exception trapping enabled
+NOTE: MAX_NUM_OVERLAPS_PER_PARTICLE = 12
+==> .dem head size = 24, data size = 1104 per particle
+DEM_FIXED_BALL: Particles should be in INCREASING radius order.
+Input file...N=2160,Time=0
+Simulation to Time:0.0604308
+Initializing DEM parameters...
+DEM_FIXED_BALL: set to maximum radius: 5.0134403e-12
+(use caution if any particle is a LOT bigger than the others)
+DEM initialization complete, time = 0.003827 sec.
+Patch: vert. freq. enhancement factor = 1
+CnPreFac and CtPreFac calculated on pid 0
+DEM WARNING #1 (pid=0,T=0.001027) minor overlap: 153 & 2119, 1.174852% of smaller radius (relative v = 1.10501e-07)
+Integration complete
