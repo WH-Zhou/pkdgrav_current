@@ -14,12 +14,16 @@ If change optical depth tau, then Sigma change -> lambda_crit
 (2) ssdraw.par (Patch width; Patch length; View size; Orbital frequency)
 (3) ss.par (dxPeriod; dyPeriod)
 
-If change orbital radius but fix the height, then omega_orb change -> lambda_crit
+If change orbital radius but fix the height, then omega_orb changes -> lambda_crit
 (1) patchic.par (Orbital distance; Patch dimensions; Velocity limit)
-(1) ssdraw.par (Patch width; Patch length; View size)
-(2) ss.par (dOrbDist; dxPeriod; dyPeriod)
+(2) ssdraw.par (Patch width; Patch length; View size)
+(3) ss.par (dOrbDist; dxPeriod; dyPeriod)
 Also, orbit_speed change -> theoretical_collision_speed -> vx, vy, vz  -> the timestep 
 (1) ss.par (dDelta)
+
+If change the optical depth tau, then Sigma changes
+(1) ssdraw.par (Patch width; Patch length; View size)
+(2) ss.par (dxPeriod; dyPeriod)
 
 # command to run pkdgrav
 pkdgrav ss.par > output 2>&1 &
@@ -32,6 +36,11 @@ python3 generate_movie.py 0(start index) 50000(end index) 1000(step) 0.1(duratio
 
 # source file for patch
 patchgen.c
+
+# plot by paraview
+python3 ss_to_vtp_batch_with_pvd.py results/tau_0_3_R_3 0 330000 1000
+open .pvd file via paraview
+filter -> glyph
 
 # ssdraw
 The camera postion should be larger than the length of the box, but cannot be too large. The best location could be 2l~ 20 l. They actually look the same. If larger, the particle size is not real. If smaller, the particles warp.

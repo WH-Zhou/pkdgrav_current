@@ -26,6 +26,9 @@ def ss_to_vtp(ss_file, output_file):
     sx, sy, sz  = data[10]/yr*2*np.pi, data[11]/yr*2*np.pi, data[12]/yr*2*np.pi
     color       = data[13].astype(np.int32) if data.shape[0] > 13 else np.zeros_like(particle_id)
 
+    radius = np.asarray(radius, dtype=np.float64)
+    mass = np.asarray(mass, dtype=np.float64)
+
     # Create point cloud
     points = np.column_stack((
         np.asarray(x, dtype=np.float64),

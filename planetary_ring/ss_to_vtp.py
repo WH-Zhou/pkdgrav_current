@@ -40,11 +40,7 @@ def ss_to_vtp(ss_file, output_file):
 
     cloud = pv.PolyData(points)
 
-    # Add fields
-    cloud['particle_id'] = particle_id
-    cloud['index']       = index
-    cloud['mass']        = mass
-    cloud['radius']      = radius
+    
     
     vx = np.asarray(vx, dtype=np.float64)
     vy = np.asarray(vy, dtype=np.float64)
@@ -52,6 +48,14 @@ def ss_to_vtp(ss_file, output_file):
     sx = np.asarray(sx, dtype=np.float64)
     sy = np.asarray(sy, dtype=np.float64)
     sz = np.asarray(sz, dtype=np.float64)
+    radius = np.asarray(radius, dtype=np.float64)
+    mass = np.asarray(mass, dtype=np.float64)
+
+    # Add fields
+    cloud['particle_id'] = particle_id
+    cloud['index']       = index
+    cloud['mass']        = mass
+    cloud['radius']      = radius
 
     cloud['velocity'] = np.column_stack((vx, vy, vz))
     cloud['spin'] = np.column_stack((sx, sy, sz))
@@ -62,22 +66,13 @@ def ss_to_vtp(ss_file, output_file):
     cloud.save(output_file)
 
 def main():
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 2:
         print("Usage: python ss_to_vtp_batch.py <path> <start> <end> <step>")
         sys.exit(1)
 
     path  = str(sys.argv[1])
-    start = int(sys.argv[2])
-    end   = int(sys.argv[3])
-    step  = int(sys.argv[4])
-
-    ss_files = generate_filenames(path, start, end, step)
-
-    for i, ss_file in enumerate(ss_files):
-        frame_id = start + i * step
-        output_file = os.path.join(path, f"frame_{frame_id}.vtp")
-        print(f"Processing {ss_file} → {output_file}")
-        ss_to_vtp(ss_file, output_file)
+    output_file = path + '.vtp'
+    ss_to_vtp(path, output_file)
 
 if __name__ == "__main__":
     main()
