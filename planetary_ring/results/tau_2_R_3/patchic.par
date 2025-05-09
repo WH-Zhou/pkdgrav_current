@@ -6,7 +6,7 @@
 #
 Verbosity level			2		# 0=Lo,1=Mid,2=Hi
 Central mass			6.39e23	# In kg (Saturn = 5.6864e26)
-Orbital distance		6779		# In km (A ring=128k,B ring=100k,C ring=85k)
+Orbital distance		10168.5		# In km (A ring=128k,B ring=100k,C ring=85k)
 Number of orbits		10.0		# For use with log file
 Dynamical optical depth		2		# A=0.5,B=1.0,C=0.15
 Surface density			0	        # In kg/m^2 (A=450,B=960,C=120)
@@ -16,7 +16,7 @@ Minimum particle radius		0.25	        # In metres
 Maximum particle radius		0.75	        # Ditto
 Size distribution exponent	-3	        # dN = k R^alpha dR, any alpha
 Use smooth distribution?	1	        # 0=no,1=yes
-Patch dimensions		2 2 10		# See note on units below
+Patch dimensions		1 1 10		# See note on units below
 Patch height option		0		# See options below
 Velocity limits			0 0 0		# In omega <R> (-ve for mks)
 Velocity limits option		0		# 0=VMax,1=VDisp,2=VWgtDisp
