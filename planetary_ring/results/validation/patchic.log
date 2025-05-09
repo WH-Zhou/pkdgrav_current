@@ -1,0 +1,21 @@
+Number of particles	1486
+Number of SSDEM steps	339411
+SSDEM Timestep		2.8050692569148962e-07	# 1.40888 s
+Recommended Kn		3.7580701586647553e-16	# 29.6214 kg/s^2
+Central mass		2.8580768457050896e-04	# 5.683e+26 kg
+Orbital distance	8.6899632589489790e-04	# 130000 km
+Orbital frequency	6.5994849134978642e+02	# period = 13.2831 h
+Patch width		1.3344259211887005e-09	# 199.627 m
+Patch length		1.3344259211887005e-09	# 199.627 m
+Patch thickness		6.4172036373777065e-11	# 9.6 m
+Mean particle radius	1.0695339395629511e-11	# 1.6 m
+Mean particle mass	5.3929304587875468e-27	# 10723.3 kg
+Mean Hill radius	1.7416644397165686e-11	# 1.62843 <R>
+Mean escape speed	2.5405053252733649e-08	# 3.59928 Omega <R>
+Optical depth		3.4657359027997270e-01	# 0.346574
+Surface density		4.5020162780072263e-06	# 400 kg/m^2
+Mean particle density	6.7349204904662026e+05	# 0.4 g/cc
+Critical wavelength	4.0808132146443439e-10	# 61.0481 m
+Volume filling factor	1.0413012662638348e-01	# 0.10413
+Mass scaling		1.0000000000000000e+00	# 1
+Radius scaling		1.0000000000000000e+00	# 1
