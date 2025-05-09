@@ -8,12 +8,12 @@ bParaWrite	= 0		# enable parallel writes? (may require testing)
 bUseWallClock	= 0		# time using wall clock? (instead of CPU time)
 bKDK		= 1		# for now always use Kick-Drift-Kick scheme
 dDelta		= 1.83e-7	# maximum step in units of yr / 2 pi
-nSteps  =  330223          #this line edited with demtools.edit_sspar() 
+nSteps  =  200223          #this line edited with demtools.edit_sspar() 
 iStartStep  =  0         #this line edited with demtools.edit_sspar() 
 nBucket		= 8		# trade off tree memory versus run cost
 dTheta		= 0.5		# critical opening angle for tree (in radians)
 bDoGravity	= 1		# include gravity (interparticle + external)?
-bDoSelfGravity	= 0		# include interparticle gravity?
+bDoSelfGravity	= 1		# include interparticle gravity?
 bHeliocentric	= 0		# use "heliocentric" reference frame?
 dCentMass	= 3.2e-7		# central mass in helio (or PATCH) frame (M_Sun)
 bFandG		= 0		# use Gauss' F & G function (Kepler) drift?
@@ -50,8 +50,8 @@ bDoIOrderOutput	= 0		# output iOrder numbers?
 # Periodic boundary conditions (see below for SLIDING_PATCH)...
 #
 bPeriodic	= 1		# use periodic boundary conditions?
-dxPeriod	= 4.34e-10		# x width of boundary (0 for none)
-dyPeriod	= 4.34e-10		# y width of boundary (0 for none)
+dxPeriod	= 4.342081431107915e-10		# x width of boundary (0 for none)
+dyPeriod	= 4.342081431107915e-10		# y width of boundary (0 for none)
 dzPeriod	= 0  	# z width of boundary (0 for none)
 nReplicas	= 3		# number of ghost layers to use
 bEwald		= 0		# apply Ewald correction?

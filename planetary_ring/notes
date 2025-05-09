@@ -1,8 +1,15 @@
+# command to run pkdgrav
+pkdgrav ss.par > output 2>&1 &
+
 # parameters in ss.par
 iOutInterval		# general output file interval in timesteps
 iRedOutInterval	        # reduced-output interval in timesteps
 dDelta  # time step
 nSteps  # number of total timesteps..
+bDoGravity	= 1		# include gravity (interparticle + external)?
+bDoSelfGravity	= 1		# include interparticle gravity?
+bHeliocentric	= 0		# use "heliocentric" reference frame?
+
 
 # Procedure for simulation
 patchic.par: Orbital distance; Dynamical optical dept; Patch dimensions; Velocity limits
@@ -25,8 +32,7 @@ If change the optical depth tau, then Sigma changes
 (1) ssdraw.par (Patch width; Patch length; View size)
 (2) ss.par (dxPeriod; dyPeriod)
 
-# command to run pkdgrav
-pkdgrav ss.par > output 2>&1 &
+
 
 # command to generate the patch, according to patchic.par
 patchgen  
@@ -38,6 +44,7 @@ python3 generate_movie.py 0(start index) 50000(end index) 1000(step) 0.1(duratio
 patchgen.c
 
 # plot by paraview
+cd planetary_ring
 python3 ss_to_vtp_batch_with_pvd.py results/tau_0_3_R_3 0 330000 1000
 open .pvd file via paraview
 filter -> glyph

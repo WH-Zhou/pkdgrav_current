@@ -18,7 +18,7 @@ Size distribution exponent	-3	        # dN = k R^alpha dR, any alpha
 Use smooth distribution?	1	        # 0=no,1=yes
 Patch dimensions		5 5 5		# See note on units below
 Patch height option		0		# See options below
-Velocity limits			1 1 1		# In omega <R> (-ve for mks)
+Velocity limits			0 0 0		# In omega <R> (-ve for mks)
 Velocity limits option		0		# 0=VMax,1=VDisp,2=VWgtDisp
 Mass scaling			1.0		# For testing purposes only
 Radius scaling			1.0		# Ditto
